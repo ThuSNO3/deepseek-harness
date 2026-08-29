@@ -12,7 +12,6 @@ it('registers all UI tools through a real Loader composition', async () => {
   await runLoaderSmoke({
     label: 'UI automation loader smoke',
     tempDirPrefix: 'ui-automation-loader-',
-    tempDirParent: 'E:\\CodexTemp',
     binScript: fixture('driver.ts'),
     libBinScript: fixture('driver.ts'),
     configPath: fixture('cordis.yml'),

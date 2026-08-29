@@ -1,0 +1,9 @@
+# Exercise semantic UI observation, input delivery, and waiting through the shipped headless entry path.
+- insert:
+    - id: ui-automation-snapshot-provider
+      name: './ui-automation-snapshot-provider.mjs'
+    - id: tool-ui-automation
+      name: '@deepseek-ai/dsh-tool-ui-automation'
+
+- id: timeout-policy
+  name: '@deepseek-ai/dsh-tool-call-timeout-policy'

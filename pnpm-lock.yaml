@@ -18,6 +18,12 @@ importers:
       '@deepseek-ai/dsh-tool-session-query':
         specifier: workspace:^
         version: link:packages/session-query/tool-session-query
+      '@deepseek-ai/dsh-tool-ui-automation':
+        specifier: workspace:^
+        version: link:packages/interaction/tool-ui-automation
+      '@deepseek-ai/dsh-ui-automation':
+        specifier: workspace:^
+        version: link:packages/interaction/ui-automation
       '@deepseek-ai/dsh-web-fetch-http':
         specifier: workspace:^
         version: link:packages/web/web-fetch-http

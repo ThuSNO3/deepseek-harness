@@ -319,7 +319,22 @@
     "semanticId": {
       "type": "string"
     },
-    "expected": {}
+    "expected": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
   },
   "required": [
     "requestId",

@@ -2007,6 +2007,66 @@
       "source": "packages/feedback/message-feedback/src/types.ts"
     },
     {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiRef",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiRequestId",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiValue",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiNode",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiSnapshot",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiSnapshotRequest",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiAction",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiActionRequest",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiActionResult",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiWaitRequest",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiDescribeRequest",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiRefDescription",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
       "doc": "packages/client/ui-conversation/README.md",
       "symbol": "ComposerChainProps",
       "source": "packages/client/ui-conversation/src/client/contract/slots.ts"
