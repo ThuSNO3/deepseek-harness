@@ -60,12 +60,12 @@ async function runWithoutAgent(ctx: Context, name: string, args: object) {
 }
 
 describe('semantic UI tools', () => {
-  it('registers exactly the nine v1 tools and removes them on disposal', async () => {
+  it('registers exactly the ten v1 tools and removes them on disposal', async () => {
     const { ctx, fiber } = await setup()
     expect(ctx.tools.schemas().map(tool => tool.name).sort()).toEqual([
       'ui.click.v1', 'ui.describe_ref.v1', 'ui.fill.v1', 'ui.press.v1',
-      'ui.select_item.v1', 'ui.select_option.v1', 'ui.set_value.v1',
-      'ui.snapshot.v1', 'ui.wait.v1',
+      'ui.select_item.v1', 'ui.select_option.v1', 'ui.set_checked.v1',
+      'ui.set_value.v1', 'ui.snapshot.v1', 'ui.wait.v1',
     ])
     await fiber.dispose()
     expect(ctx.tools.schemas()).toEqual([])
@@ -99,6 +99,19 @@ describe('semantic UI tools', () => {
       { action: 'fill', value: 'safe' },
       { action: 'press', key: 'enter' },
     ])
+  })
+
+  it('projects an explicit boolean checked state to the provider', async () => {
+    const { ctx, provider } = await setup()
+    await run(ctx, 'ui.snapshot.v1', { requestId: 's1' })
+    expect((await run(ctx, 'ui.set_checked.v1', {
+      requestId: 'check1', revision: 7, ref: 'u7-check', value: true,
+    })).isError).toBe(false)
+    expect(provider.calls.at(-1)?.request).toMatchObject({ action: 'set_checked', value: true })
+    await run(ctx, 'ui.snapshot.v1', { requestId: 's2' })
+    expect((await run(ctx, 'ui.set_checked.v1', {
+      requestId: 'check2', revision: 7, ref: 'u7-check', value: 'true',
+    })).isError).toBe(true)
   })
 
   it('keeps observation state isolated by exact Agent object', async () => {

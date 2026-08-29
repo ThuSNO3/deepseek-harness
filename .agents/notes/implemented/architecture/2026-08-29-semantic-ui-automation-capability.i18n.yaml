@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-29-semantic-ui-automation-capability.md
-2026-08-29-semantic-ui-automation-capability.md: 47199b9ace5a345c1aa30e5c195817c9ba281fe6
-2026-08-29-semantic-ui-automation-capability.zh.md: e29f87508d8cd5f94a70d955fdf7892728f521f3
+2026-08-29-semantic-ui-automation-capability.md: 179d8cf2c7b4cbbdbe47e5044a88f29aeec670bd
+2026-08-29-semantic-ui-automation-capability.zh.md: 139f3ef549b35791bb4b0359b01754dd2dfb756e

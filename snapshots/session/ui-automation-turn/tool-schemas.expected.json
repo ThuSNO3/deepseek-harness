@@ -683,6 +683,33 @@
       }
     },
     {
+      "name": "ui.set_checked.v1",
+      "description": "Perform one bounded action on a ref from the latest semantic UI snapshot.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "value": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "requestId",
+          "revision",
+          "ref",
+          "value"
+        ]
+      }
+    },
+    {
       "name": "ui.set_value.v1",
       "description": "Perform one bounded action on a ref from the latest semantic UI snapshot.",
       "parameters": {

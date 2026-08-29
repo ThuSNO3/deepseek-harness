@@ -5968,11 +5968,11 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'UiAction',
-    declaration: 'export type UiAction = \'click\' | \'select_item\' | \'fill\' | \'select_option\' | \'set_value\' | \'press\';',
+    declaration: 'export type UiAction = \'click\' | \'select_item\' | \'set_checked\' | \'fill\' | \'select_option\' | \'set_value\' | \'press\';',
   },
   {
     name: 'UiActionRequest',
-    declaration: 'export interface UiActionRequest {\n    readonly requestId: UiRequestId;\n    readonly revision: number;\n    readonly ref: UiRef;\n    readonly action: UiAction;\n    readonly value?: string | number;\n    readonly key?: string;\n}',
+    declaration: 'export interface UiActionRequest {\n    readonly requestId: UiRequestId;\n    readonly revision: number;\n    readonly ref: UiRef;\n    readonly action: UiAction;\n    readonly value?: string | number | boolean;\n    readonly key?: string;\n}',
   },
   {
     name: 'UiActionResult',

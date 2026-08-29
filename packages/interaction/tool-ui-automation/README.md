@@ -1,5 +1,5 @@
 ---
-description: "Nine model-facing semantic UI tools over ctx.uiAutomation."
+description: "Ten model-facing semantic UI tools over ctx.uiAutomation."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This Consumer registers nine typed UI tools over `ctx.uiAutomation`. Each Agent takes a snapshot, performs at most one action, then waits or takes a new snapshot. The exact Agent and tool AbortSignal reach the provider. Plugin disposal removes every tool and its plugin-local state.
+This Consumer registers ten typed UI tools over `ctx.uiAutomation`. Each Agent takes a snapshot, performs at most one action, then waits or takes a new snapshot. The exact Agent and tool AbortSignal reach the provider. Plugin disposal removes every tool and its plugin-local state.
 
 ## Table of Contents
 
@@ -28,7 +28,7 @@ None.
 
 #### What the model sees
 
-The model sees the generated [nine UI tool schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-ui-automation) for snapshot, click, select-item, fill, select-option, set-value, press, wait, and describe-ref.
+The model sees the generated [ten UI tool schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-ui-automation) for snapshot, click, select-item, set-checked, fill, select-option, set-value, press, wait, and describe-ref. `set-checked` requires an explicit boolean target state, so replaying the same request cannot reverse an already satisfied checkbox.
 
 #### Token effect
 

@@ -15,7 +15,7 @@ This table connects model-visible tool names to the plugin package and service s
 
 | Tool package | Model-visible names | Requires | Writes / affects | Shipped aliases | Deployment note |
 | --- | --- | --- | --- | --- | --- |
-| `@deepseek-ai/dsh-tool-ui-automation` | `ui.click.v1`, `ui.describe_ref.v1`, `ui.fill.v1`, `ui.press.v1`, `ui.select_item.v1`, `ui.select_option.v1`, `ui.set_value.v1`, `ui.snapshot.v1`, `ui.wait.v1` | `ctx.tools`, `ctx.uiAutomation` | `tool/call`, `tool/result after the host provider observes or acts` | - | The Consumer requires a host provider and enforces snapshot, one action, then wait or observe again per Agent. |
+| `@deepseek-ai/dsh-tool-ui-automation` | `ui.click.v1`, `ui.describe_ref.v1`, `ui.fill.v1`, `ui.press.v1`, `ui.select_item.v1`, `ui.select_option.v1`, `ui.set_checked.v1`, `ui.set_value.v1`, `ui.snapshot.v1`, `ui.wait.v1` | `ctx.tools`, `ctx.uiAutomation` | `tool/call`, `tool/result after the host provider observes or acts` | - | The Consumer requires a host provider and enforces snapshot, one action, then wait or observe again per Agent. |
 | `@deepseek-ai/dsh-tool-ask-user` | `ask_user_question` | `ctx.tools`, `ctx.userQuestions` | `tool/call`, `tool/result after a UI/provider answers the question` | - | ask_user_question pauses the tool call until the active UI provider returns a human answer. |
 | `@deepseek-ai/dsh-tools` | `run_code` | `ctx.tools`, `ctx.codeRuntime (execution time)`, `ctx.systemPrompt` | `tool/call`, `one tool/code-dispatch-start + tool/code-dispatch pair per bridged sub-call`, `tool/result` | - | Owned by the tool registry as a reserved transport outside filterable capability layers under `mode: ptc` / `mode: both` (see the PTC mode Agent Note). Under `ptc` it is the registry's only wire contribution; the other visible capabilities are declared in a generated SDK section in the loaded runtime's language, and a program calls them through bindings scheduled under the native concurrency contract (submission-ordered starts and policy; concurrency-safe bodies overlap up to `maxParallelSubCalls`) that re-enter the complete guarded tool pipeline and link each nested execution to this outer result. |
 | `@deepseek-ai/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`, `ctx.systemPrompt`, `ctx.userQuestions (execution time, opportunistic)` | `tool/call`, `plan/mode inactive on an approved review`, `tool/result` | - | exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-questions seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary. |
@@ -226,6 +226,38 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
     "requestId",
     "revision",
     "ref"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+### `ui.set_checked.v1`
+
+Perform one bounded action on a ref from the latest semantic UI snapshot.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "ref": {
+      "type": "string"
+    },
+    "value": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "requestId",
+    "revision",
+    "ref",
+    "value"
   ]
 }
 ```

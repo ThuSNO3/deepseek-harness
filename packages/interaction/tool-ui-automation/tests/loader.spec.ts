@@ -24,7 +24,7 @@ it('registers all UI tools through a real Loader composition', async () => {
   })
   expect(names).toEqual([
     'ui.click.v1', 'ui.describe_ref.v1', 'ui.fill.v1', 'ui.press.v1',
-    'ui.select_item.v1', 'ui.select_option.v1', 'ui.set_value.v1',
+    'ui.select_item.v1', 'ui.select_option.v1', 'ui.set_checked.v1', 'ui.set_value.v1',
     'ui.snapshot.v1', 'ui.wait.v1',
   ])
   expect(result).toEqual([{ type: 'text', text: JSON.stringify({
