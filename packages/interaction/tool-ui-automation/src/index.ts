@@ -167,7 +167,7 @@ export function apply(ctx: Context): void {
           revision: args.revision,
           ref: args.ref as UiRef,
           action,
-          ...'value' in args ? { value: args.value as string | number } : {},
+          ...'value' in args ? { value: args.value as string | number | boolean } : {},
           ...'key' in args ? { key: args.key as string } : {},
         }
         const result = await ctx.uiAutomation.act(request, callContext)
@@ -178,6 +178,7 @@ export function apply(ctx: Context): void {
 
   registerAction('ui.click.v1', 'click', actionParameters())
   registerAction('ui.select_item.v1', 'select_item', actionParameters())
+  registerAction('ui.set_checked.v1', 'set_checked', actionParameters({ value: { type: 'boolean', required: true } }))
   registerAction('ui.fill.v1', 'fill', actionParameters({ value: { type: 'string', required: true } }))
   registerAction('ui.select_option.v1', 'select_option', actionParameters())
   registerAction('ui.set_value.v1', 'set_value', actionParameters({ value: { type: 'number', required: true } }))

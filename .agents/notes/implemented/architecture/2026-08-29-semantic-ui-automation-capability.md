@@ -14,6 +14,8 @@ The `dsh-ui-automation` Service Definition owns `ctx.uiAutomation`: semantic sna
 
 The separate `dsh-tool-ui-automation` Consumer registers the v1 tool vocabulary and keeps a plugin-local WeakMap keyed by exact Agent. One Agent observes a snapshot, performs at most one action, then waits or observes again. The Consumer projects only declared DTO fields into closed tool-result schemas and contributes no UI implementation or permission decision. Cordis effect disposal removes all tool registrations; the plugin-local state becomes unreachable with the disposed plugin.
 
+Checkbox changes carry an explicit boolean target through `set_checked`. The Provider makes an already satisfied state a no-op, so retries do not inherit toggle semantics and cannot reverse a prior successful selection.
+
 The interface keeps Agent and cancellation explicit. UI automation crosses a product and often a process boundary, so ambient initiator state cannot carry either value to a Provider. Snapshot refs remain opaque provider-owned values; the harness does not interpret a widget tree, browser selector, coordinate, or product identity.
 
 ## Alternatives considered

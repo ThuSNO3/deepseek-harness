@@ -70,7 +70,7 @@ interface UiSnapshotRequest { readonly requestId: UiRequestId }
 
 ```ts type-equiv
 /** User-equivalent operation supported by the v1 Consumer vocabulary. */
-type UiAction = 'click' | 'select_item' | 'fill' | 'select_option' | 'set_value' | 'press'
+type UiAction = 'click' | 'select_item' | 'set_checked' | 'fill' | 'select_option' | 'set_value' | 'press'
 ```
 
 ```ts type-equiv
@@ -80,7 +80,7 @@ interface UiActionRequest {
   readonly revision: number
   readonly ref: UiRef
   readonly action: UiAction
-  readonly value?: string | number
+  readonly value?: string | number | boolean
   readonly key?: string
 }
 ```

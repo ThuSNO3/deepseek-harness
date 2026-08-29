@@ -14,6 +14,8 @@ Status: implemented
 
 独立的 `dsh-tool-ui-automation` Consumer 注册 v1 工具词汇，并使用按确切 Agent 索引的插件局部 WeakMap。一个 Agent 观察快照后最多执行一个 action，随后必须 wait 或重新观察。Consumer 只把 DTO 声明字段投影到闭合的工具结果 schema，不实现 UI 或权限决定。Cordis effect disposal 会移除全部工具注册；插件卸载后其局部状态不可达。
 
+Checkbox 变更通过 `set_checked` 携带显式布尔目标。Provider 把已经满足的状态处理为 no-op，因此重试不会继承 toggle 语义，也不能反转先前成功的选择。
+
 接口显式保留 Agent 与取消。UI 自动化跨越产品，通常还跨越进程，因此 ambient initiator state 不能把任一值带给 Provider。snapshot ref 是 Provider 自有的不透明值；Harness 不解释 widget tree、浏览器 selector、坐标或产品身份。
 
 ## Alternatives considered
