@@ -15,6 +15,7 @@ This table connects model-visible tool names to the plugin package and service s
 
 | Tool package | Model-visible names | Requires | Writes / affects | Shipped aliases | Deployment note |
 | --- | --- | --- | --- | --- | --- |
+| `@deepseek-ai/dsh-tool-ui-automation` | `ui.click.v1`, `ui.describe_ref.v1`, `ui.fill.v1`, `ui.press.v1`, `ui.select_item.v1`, `ui.select_option.v1`, `ui.set_value.v1`, `ui.snapshot.v1`, `ui.wait.v1` | `ctx.tools`, `ctx.uiAutomation` | `tool/call`, `tool/result after the host provider observes or acts` | - | The Consumer requires a host provider and enforces snapshot, one action, then wait or observe again per Agent. |
 | `@deepseek-ai/dsh-tool-ask-user` | `ask_user_question` | `ctx.tools`, `ctx.userQuestions` | `tool/call`, `tool/result after a UI/provider answers the question` | - | ask_user_question pauses the tool call until the active UI provider returns a human answer. |
 | `@deepseek-ai/dsh-tools` | `run_code` | `ctx.tools`, `ctx.codeRuntime (execution time)`, `ctx.systemPrompt` | `tool/call`, `one tool/code-dispatch-start + tool/code-dispatch pair per bridged sub-call`, `tool/result` | - | Owned by the tool registry as a reserved transport outside filterable capability layers under `mode: ptc` / `mode: both` (see the PTC mode Agent Note). Under `ptc` it is the registry's only wire contribution; the other visible capabilities are declared in a generated SDK section in the loaded runtime's language, and a program calls them through bindings scheduled under the native concurrency contract (submission-ordered starts and policy; concurrency-safe bodies overlap up to `maxParallelSubCalls`) that re-enter the complete guarded tool pipeline and link each nested execution to this outer result. |
 | `@deepseek-ai/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`, `ctx.systemPrompt`, `ctx.userQuestions (execution time, opportunistic)` | `tool/call`, `plan/mode inactive on an approved review`, `tool/result` | - | exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-questions seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary. |
@@ -41,6 +42,294 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflowEngine`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
+
+<a id="deepseek-aidsh-tool-ui-automation"></a>
+
+## `@deepseek-ai/dsh-tool-ui-automation`
+
+### `ui.click.v1`
+
+Perform one bounded action on a ref from the latest semantic UI snapshot.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "ref": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "requestId",
+    "revision",
+    "ref"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+### `ui.describe_ref.v1`
+
+Describe safe metadata for one ref from the latest semantic UI snapshot.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "ref": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "requestId",
+    "revision",
+    "ref"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+### `ui.fill.v1`
+
+Perform one bounded action on a ref from the latest semantic UI snapshot.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "ref": {
+      "type": "string"
+    },
+    "value": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "requestId",
+    "revision",
+    "ref",
+    "value"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+### `ui.press.v1`
+
+Perform one bounded action on a ref from the latest semantic UI snapshot.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "ref": {
+      "type": "string"
+    },
+    "key": {
+      "type": "string",
+      "enum": [
+        "enter",
+        "escape",
+        "tab",
+        "up",
+        "down",
+        "left",
+        "right"
+      ]
+    }
+  },
+  "required": [
+    "requestId",
+    "revision",
+    "ref",
+    "key"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+### `ui.select_item.v1`
+
+Perform one bounded action on a ref from the latest semantic UI snapshot.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "ref": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "requestId",
+    "revision",
+    "ref"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+### `ui.select_option.v1`
+
+Perform one bounded action on a ref from the latest semantic UI snapshot.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "ref": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "requestId",
+    "revision",
+    "ref"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+### `ui.set_value.v1`
+
+Perform one bounded action on a ref from the latest semantic UI snapshot.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "ref": {
+      "type": "string"
+    },
+    "value": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "requestId",
+    "revision",
+    "ref",
+    "value"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+### `ui.snapshot.v1`
+
+Read the current host-owned semantic UI surface before taking one action.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "requestId"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+### `ui.wait.v1`
+
+Wait for a bounded semantic condition after the latest UI action.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "condition": {
+      "type": "string",
+      "enum": [
+        "revision_changed",
+        "modal_visible",
+        "semantic_visible"
+      ]
+    },
+    "timeoutMs": {
+      "type": "integer"
+    },
+    "afterRevision": {
+      "type": "integer"
+    },
+    "actionRequestId": {
+      "type": "string"
+    },
+    "semanticId": {
+      "type": "string"
+    },
+    "expected": {}
+  },
+  "required": [
+    "requestId",
+    "condition",
+    "timeoutMs",
+    "afterRevision",
+    "actionRequestId"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+The Consumer requires a host provider and enforces snapshot, one action, then wait or observe again per Agent.
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 

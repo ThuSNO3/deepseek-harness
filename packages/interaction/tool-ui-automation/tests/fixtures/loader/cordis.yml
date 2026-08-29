@@ -1,0 +1,11 @@
+- id: system-prompt
+  name: '@deepseek-ai/dsh-system-prompt'
+
+- id: tools
+  name: '@deepseek-ai/dsh-tools'
+
+- id: ui-provider
+  name: './provider.ts'
+
+- id: ui-tools
+  name: '@deepseek-ai/dsh-tool-ui-automation'

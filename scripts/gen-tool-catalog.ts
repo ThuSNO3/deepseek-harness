@@ -28,6 +28,7 @@ import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
 import { AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentLimits, ImageAttachmentRef, SaveImageAttachment, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
+import UiAutomationService from '@deepseek-ai/dsh-ui-automation'
 import PlanModeController from '@deepseek-ai/dsh-plan-mode'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import * as WebSearchExa from '@deepseek-ai/dsh-web-search-exa'
@@ -41,6 +42,7 @@ import SkillRegistry from '@deepseek-ai/dsh-skill'
 import * as SkillFileSystem from '@deepseek-ai/dsh-skill-filesystem'
 import LocalJobRegistry from '@deepseek-ai/dsh-jobs-local'
 import * as ToolAskUser from '@deepseek-ai/dsh-tool-ask-user'
+import * as ToolUiAutomation from '@deepseek-ai/dsh-tool-ui-automation'
 import * as ToolBash from '@deepseek-ai/dsh-tool-bash'
 import * as ToolPwsh from '@deepseek-ai/dsh-tool-pwsh'
 import * as ToolBashPersistent from '@deepseek-ai/dsh-tool-bash-persistent'
@@ -188,6 +190,24 @@ export interface ToolPackage {
  * guard proves it is exhaustive against the on-disk glob.
  */
 const TOOL_PACKAGES: ToolPackage[] = [
+  {
+    pkg: '@deepseek-ai/dsh-tool-ui-automation',
+    dir: 'tool-ui-automation',
+    source: 'packages/interaction/tool-ui-automation/src/index.ts',
+    requires: ['ctx.tools', 'ctx.uiAutomation'],
+    writes: ['tool/call', 'tool/result after the host provider observes or acts'],
+    async mount(ctx) {
+      class CatalogUiAutomation extends UiAutomationService {
+        snapshot(): never { throw new Error('tool-catalog UI provider is schema-only') }
+        act(): never { throw new Error('tool-catalog UI provider is schema-only') }
+        wait(): never { throw new Error('tool-catalog UI provider is schema-only') }
+        describe(): never { throw new Error('tool-catalog UI provider is schema-only') }
+      }
+      await ctx.plugin(CatalogUiAutomation)
+      await ctx.plugin(ToolUiAutomation)
+    },
+    note: 'The Consumer requires a host provider and enforces snapshot, one action, then wait or observe again per Agent.',
+  },
   {
     pkg: '@deepseek-ai/dsh-tool-ask-user',
     dir: 'tool-ask-user',
