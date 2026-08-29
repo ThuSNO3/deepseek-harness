@@ -364,6 +364,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'UI front ends provide the active human-answer provider; tool-ask-user pauses a tool call on the provider-neutral ask() promise.',
   },
   {
+    key: 'uiAutomation',
+    pkg: 'ui-automation',
+    title: 'Semantic UI automation seam',
+    mode: 'seam',
+    consumers: ['tool-ui-automation'],
+    note: 'Host providers own semantic targets and delivery; the Consumer enforces one-action observation discipline per Agent.',
+  },
+  {
     key: 'planMode',
     pkg: 'plan-mode',
     title: 'Plan collaboration state',

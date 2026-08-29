@@ -718,6 +718,16 @@
         "tests/**/*.ts"
       ]
     },
+    "packages/interaction/tool-ui-automation": {
+      "entry": [
+        "tests/**/*.spec.ts",
+        "tests/fixtures/loader/*.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
     "packages/test-support/loader-smoke": {
       "entry": [
         "tests/**/*.spec.ts",

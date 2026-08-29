@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The `interaction/` group is where a human collaborates with a running agent. It provides the slash-command plane users type into, the one-shot approval decisions behind sensitive actions, named permission presets that bundle sandbox mode with an approval policy, and the question/answer service an agent pauses on when it needs a human decision. All five packages are product packages — the real interfaces a person drives — and the product `dsh` CLI composes them directly. Interactive applications drive the command, approval, and question interfaces directly, while automation uses the ACP transport. The subsystem references own the exhaustive contracts; this map points at each package and its neighbors.
+The `interaction/` group is where a human or host UI collaborates with a running agent. Its seven packages cover slash commands, one-shot approvals, permission presets, human questions, and provider-neutral semantic UI automation. The product `dsh` CLI composes the human-interaction packages; a product Host opts into the UI automation Service Definition and Consumer only when it supplies a provider. The subsystem references own the exhaustive contracts; this map points at each package and its neighbors.
 
 ## Table of Contents
 
@@ -31,6 +31,8 @@ Each package README and its subsystem reference own the exhaustive contracts.
 | [`permission-presets/`](permission-presets/README.md) | Bundles sandbox mode with an approval policy into one user-facing Permissions selector | `ctx.permissionPresets` |
 | [`user-questions/`](user-questions/README.md) | Defines the validated question schema and scoped answerer waterfall an agent pauses on | `ctx.userQuestions` |
 | [`tool-ask-user/`](tool-ask-user/README.md) | Exposes the `ask_user_question` tool so the model can ask the human for a decision | registers on `ctx.tools` |
+| [`ui-automation/`](ui-automation/README.md) | Defines provider-neutral semantic UI observation and bounded actions | `ctx.uiAutomation` |
+| [`tool-ui-automation/`](tool-ui-automation/README.md) | Exposes semantic UI tools with per-Agent sequencing | registers on `ctx.tools` |
 
 -----
 
@@ -43,6 +45,7 @@ Start with the subsystem references for the shared vocabularies, then the neighb
 - [Approval subsystem](../../docs/subsystems/approval.md) — request/outcome vocabulary, the answerer waterfall, and per-session policy.
 - [Permission presets subsystem](../../docs/subsystems/permission-presets.md) — the preset table and the knob write-through.
 - [User interaction subsystem](../../docs/subsystems/user-questions.md) — question vocabulary, answerer waterfall, and presentation intent.
+- [UI automation subsystem](../../docs/subsystems/ui-automation.md) — semantic snapshots, provider calls, and Consumer sequencing.
 - [ACP group](../acp/README.md) — the automation-only transport that answers approval requests for its own agents.
 
 <a id="dev-note"></a>
