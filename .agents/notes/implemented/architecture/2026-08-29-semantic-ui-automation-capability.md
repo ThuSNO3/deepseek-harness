@@ -12,7 +12,7 @@ A product-hosted agent may need to operate the product interface through the sam
 
 The `dsh-ui-automation` Service Definition owns `ctx.uiAutomation`: semantic snapshots plus bounded action, wait, and description calls. Every operation carries the exact Agent and AbortSignal. Product Providers own target identity, safety, approval, transport, and actual input delivery.
 
-The separate `dsh-tool-ui-automation` Consumer registers the v1 tool vocabulary and keeps a plugin-local WeakMap keyed by exact Agent. One Agent observes a snapshot, performs at most one action, then waits or observes again. The Consumer forwards provider DTOs as tool JSON and contributes no UI implementation or permission decision. Cordis effect disposal removes all tool registrations; the plugin-local state becomes unreachable with the disposed plugin.
+The separate `dsh-tool-ui-automation` Consumer registers the v1 tool vocabulary and keeps a plugin-local WeakMap keyed by exact Agent. One Agent observes a snapshot, performs at most one action, then waits or observes again. The Consumer projects only declared DTO fields into closed tool-result schemas and contributes no UI implementation or permission decision. Cordis effect disposal removes all tool registrations; the plugin-local state becomes unreachable with the disposed plugin.
 
 The interface keeps Agent and cancellation explicit. UI automation crosses a product and often a process boundary, so ambient initiator state cannot carry either value to a Provider. Snapshot refs remain opaque provider-owned values; the harness does not interpret a widget tree, browser selector, coordinate, or product identity.
 

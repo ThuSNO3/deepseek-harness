@@ -2,9 +2,10 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { JsonValue } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { UiAction, UiRef, UiRequestId, UiValue } from '@deepseek-ai/dsh-ui-automation'
+import type {
+  UiAction, UiActionResult, UiNode, UiRef, UiRefDescription, UiRequestId, UiSnapshot,
+} from '@deepseek-ai/dsh-ui-automation'
 
 export const name = 'tool-ui-automation'
 export const inject = ['tools', 'uiAutomation']
@@ -29,6 +30,102 @@ function render(_args: unknown, value: unknown) {
   return [{ type: 'text' as const, text: JSON.stringify(value) }]
 }
 
+const nullableString = { oneOf: [{ type: 'string' }, { type: 'null' }] } as const
+const nullableBoolean = { oneOf: [{ type: 'boolean' }, { type: 'null' }] } as const
+const uiValueSchema = {
+  oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }, { type: 'null' }],
+} as const
+const nodeSchema = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    ref: { type: 'string', required: true },
+    semanticId: { type: 'string', required: true },
+    role: { type: 'string', required: true },
+    labelCode: { type: 'string', required: true },
+    visible: { type: 'boolean', required: true },
+    enabled: { type: 'boolean', required: true },
+    checked: { ...nullableBoolean, required: true },
+    selected: { type: 'boolean', required: true },
+    expanded: { ...nullableBoolean, required: true },
+    actions: { type: 'array', items: { type: 'string' }, required: true },
+    risk: { type: 'string', required: true },
+    parentRef: { ...nullableString, required: true },
+    childRefs: { type: 'array', items: { type: 'string' }, required: true },
+    value: { ...uiValueSchema, required: true },
+    unit: { ...nullableString, required: true },
+    stateCode: { ...nullableString, required: true },
+    reliabilityCode: { ...nullableString, required: true },
+  },
+} as const
+const snapshotSchema = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    revision: { type: 'integer', required: true },
+    windowId: { type: 'string', required: true },
+    modalDepth: { type: 'integer', required: true },
+    focusRef: { ...nullableString, required: true },
+    busy: { type: 'boolean', required: true },
+    nodes: { type: 'array', items: nodeSchema, required: true },
+    truncated: { type: 'boolean', required: true },
+  },
+} as const
+const actionResultSchema = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    requestId: { type: 'string', required: true },
+    resultKind: { type: 'string', enum: ['completed', 'denied', 'cancelled', 'timeout'], required: true },
+    consumedRevision: { type: 'integer', required: true },
+    detailCode: { type: 'string', required: true },
+  },
+} as const
+const descriptionSchema = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    ...actionResultSchema.properties,
+    semanticId: { type: 'string', required: true },
+    role: { type: 'string', required: true },
+    visible: { type: 'boolean', required: true },
+    enabled: { type: 'boolean', required: true },
+    actions: { type: 'array', items: { type: 'string' }, required: true },
+    risk: { type: 'string', required: true },
+    stateCode: { ...nullableString, required: true },
+    reliabilityCode: { ...nullableString, required: true },
+  },
+} as const
+
+function projectNode(node: UiNode) {
+  return {
+    ref: node.ref, semanticId: node.semanticId, role: node.role, labelCode: node.labelCode,
+    visible: node.visible, enabled: node.enabled, checked: node.checked, selected: node.selected,
+    expanded: node.expanded, actions: [...node.actions], risk: node.risk, parentRef: node.parentRef,
+    childRefs: [...node.childRefs], value: node.value, unit: node.unit, stateCode: node.stateCode,
+    reliabilityCode: node.reliabilityCode,
+  }
+}
+
+function projectSnapshot(snapshot: UiSnapshot) {
+  return {
+    revision: snapshot.revision, windowId: snapshot.windowId, modalDepth: snapshot.modalDepth,
+    focusRef: snapshot.focusRef, busy: snapshot.busy, nodes: snapshot.nodes.map(projectNode),
+    truncated: snapshot.truncated,
+  }
+}
+
+function projectActionResult(result: UiActionResult) {
+  return {
+    requestId: result.requestId, resultKind: result.resultKind,
+    consumedRevision: result.consumedRevision, detailCode: result.detailCode,
+  }
+}
+
+function projectDescription(result: UiRefDescription) {
+  return {
+    ...projectActionResult(result), semanticId: result.semanticId, role: result.role,
+    visible: result.visible, enabled: result.enabled, actions: [...result.actions], risk: result.risk,
+    stateCode: result.stateCode, reliabilityCode: result.reliabilityCode,
+  }
+}
+
 export function apply(ctx: Context): void {
   const states = new WeakMap<Agent, UiTurnState>()
   const stateFor = (agent: Agent): UiTurnState => {
@@ -42,13 +139,13 @@ export function apply(ctx: Context): void {
     name: 'ui.snapshot.v1',
     description: 'Read the current host-owned semantic UI surface before taking one action.',
     parameters: { requestId: { type: 'string', required: true } },
-    output: { schema: { type: 'json' }, render },
+    output: { schema: snapshotSchema, render },
     async execute(args, exec) {
       const callContext = contextOf(exec)
       states.delete(callContext.agent)
       const result = await ctx.uiAutomation.snapshot({ requestId: args.requestId as UiRequestId }, callContext)
       states.set(callContext.agent, { revision: result.revision, actionRequestId: null })
-      return result as unknown as JsonValue
+      return projectSnapshot(result)
     },
   }))
 
@@ -57,7 +154,7 @@ export function apply(ctx: Context): void {
       name: toolName,
       description: 'Perform one bounded action on a ref from the latest semantic UI snapshot.',
       parameters,
-      output: { schema: { type: 'json' }, render },
+      output: { schema: actionResultSchema, render },
       async execute(args, exec) {
         const callContext = contextOf(exec)
         const state = stateFor(callContext.agent)
@@ -74,7 +171,7 @@ export function apply(ctx: Context): void {
           ...'key' in args ? { key: args.key as string } : {},
         }
         const result = await ctx.uiAutomation.act(request, callContext)
-        return result as unknown as JsonValue
+        return projectActionResult(result)
       },
     }))
   }
@@ -98,9 +195,9 @@ export function apply(ctx: Context): void {
       afterRevision: { type: 'integer', required: true },
       actionRequestId: { type: 'string', required: true },
       semanticId: { type: 'string' },
-      expected: { type: 'json' },
+      expected: uiValueSchema,
     },
-    output: { schema: { type: 'json' }, render },
+    output: { schema: actionResultSchema, render },
     async execute(args, exec) {
       const callContext = contextOf(exec)
       const state = stateFor(callContext.agent)
@@ -108,15 +205,16 @@ export function apply(ctx: Context): void {
       if (args.afterRevision !== state.revision) throw new Error('ui_revision_mismatch')
       if (args.actionRequestId !== state.actionRequestId) throw new Error('ui_action_request_mismatch')
       try {
-        return await ctx.uiAutomation.wait({
+        const result = await ctx.uiAutomation.wait({
           requestId: args.requestId as UiRequestId,
           condition: args.condition,
           timeoutMs: args.timeoutMs,
           afterRevision: args.afterRevision,
           actionRequestId: args.actionRequestId as UiRequestId,
           ...args.semanticId !== undefined ? { semanticId: args.semanticId } : {},
-          ...args.expected !== undefined ? { expected: args.expected as UiValue } : {},
-        }, callContext) as unknown as JsonValue
+          ...args.expected !== undefined ? { expected: args.expected } : {},
+        }, callContext)
+        return projectActionResult(result)
       } finally {
         states.delete(callContext.agent)
       }
@@ -127,7 +225,7 @@ export function apply(ctx: Context): void {
     name: 'ui.describe_ref.v1',
     description: 'Describe safe metadata for one ref from the latest semantic UI snapshot.',
     parameters: actionParameters(),
-    output: { schema: { type: 'json' }, render },
+    output: { schema: descriptionSchema, render },
     async execute(args, exec) {
       const callContext = contextOf(exec)
       const state = stateFor(callContext.agent)
@@ -135,11 +233,12 @@ export function apply(ctx: Context): void {
       if (state.actionRequestId !== null) throw new Error('ui_action_pending_observation')
       if (args.revision !== state.revision) throw new Error('ui_revision_mismatch')
       states.delete(callContext.agent)
-      return await ctx.uiAutomation.describe({
+      const result = await ctx.uiAutomation.describe({
         requestId: args.requestId as UiRequestId,
         revision: args.revision,
         ref: args.ref as UiRef,
-      }, callContext) as unknown as JsonValue
+      }, callContext)
+      return projectDescription(result)
     },
   }))
 }

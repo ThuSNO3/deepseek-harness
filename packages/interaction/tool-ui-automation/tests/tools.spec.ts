@@ -11,22 +11,31 @@ import UiAutomationService, {
 import * as ToolUiAutomation from '@deepseek-ai/dsh-tool-ui-automation'
 
 class Provider extends UiAutomationService {
+  extraResults = false
   readonly calls: Array<{ kind: string; request: unknown; context: UiAutomationCallContext }> = []
   snapshot(request: UiSnapshotRequest, context: UiAutomationCallContext) {
     this.calls.push({ kind: 'snapshot', request, context })
-    return Promise.resolve({ revision: 7, windowId: 'main.window', modalDepth: 0, focusRef: null, busy: false, nodes: [], truncated: false })
+    return Promise.resolve({
+      revision: 7, windowId: 'main.window', modalDepth: 0, focusRef: null, busy: false,
+      nodes: this.extraResults ? [{
+        ref: 'u7-node' as never, semanticId: 'main.node', role: 'button', labelCode: 'safe',
+        visible: true, enabled: true, checked: null, selected: false, expanded: null,
+        actions: ['click'], risk: 'none', parentRef: null, childRefs: [], value: null, unit: null,
+        stateCode: null, reliabilityCode: null, extraNode: 'hidden',
+      }] : [], truncated: false, ...this.extraResults ? { extraSnapshot: 'hidden' } : {},
+    })
   }
   act(request: UiActionRequest, context: UiAutomationCallContext) {
     this.calls.push({ kind: 'act', request, context })
-    return Promise.resolve({ requestId: request.requestId, resultKind: 'completed' as const, consumedRevision: request.revision, detailCode: 'action_delivered' })
+    return Promise.resolve({ requestId: request.requestId, resultKind: 'completed' as const, consumedRevision: request.revision, detailCode: 'action_delivered', ...this.extraResults ? { extraResult: 'hidden' } : {} })
   }
   wait(request: UiWaitRequest, context: UiAutomationCallContext) {
     this.calls.push({ kind: 'wait', request, context })
-    return Promise.resolve({ requestId: request.requestId, resultKind: 'completed' as const, consumedRevision: request.afterRevision, detailCode: 'condition_met' })
+    return Promise.resolve({ requestId: request.requestId, resultKind: 'completed' as const, consumedRevision: request.afterRevision, detailCode: 'condition_met', ...this.extraResults ? { extraResult: 'hidden' } : {} })
   }
   describe(request: UiDescribeRequest, context: UiAutomationCallContext) {
     this.calls.push({ kind: 'describe', request, context })
-    return Promise.resolve({ requestId: request.requestId, resultKind: 'completed' as const, consumedRevision: request.revision, detailCode: 'ref_described', semanticId: 'main.search', role: 'button', visible: true, enabled: true, actions: ['click'], risk: 'navigate', stateCode: null, reliabilityCode: null })
+    return Promise.resolve({ requestId: request.requestId, resultKind: 'completed' as const, consumedRevision: request.revision, detailCode: 'ref_described', semanticId: 'main.search', role: 'button', visible: true, enabled: true, actions: ['click'], risk: 'navigate', stateCode: null, reliabilityCode: null, ...this.extraResults ? { extraDescription: 'hidden' } : {} })
   }
 }
 
@@ -141,6 +150,32 @@ describe('semantic UI tools', () => {
     expect((await run(ctx, 'ui.describe_ref.v1', { requestId: 'd1', revision: 8, ref: 'u7-a' })).isError).toBe(true)
     await run(ctx, 'ui.click.v1', { requestId: 'a1', revision: 7, ref: 'u7-a' })
     expect((await run(ctx, 'ui.describe_ref.v1', { requestId: 'd2', revision: 7, ref: 'u7-a' })).isError).toBe(true)
+  })
+
+  it('rejects non-scalar wait predicates before provider dispatch', async () => {
+    const { ctx, provider } = await setup()
+    await run(ctx, 'ui.snapshot.v1', { requestId: 's1' })
+    await run(ctx, 'ui.click.v1', { requestId: 'a1', revision: 7, ref: 'u7-a' })
+    expect((await run(ctx, 'ui.wait.v1', {
+      requestId: 'w1', condition: 'semantic_visible', timeoutMs: 10, afterRevision: 7,
+      actionRequestId: 'a1', expected: { unsafe: true },
+    })).isError).toBe(true)
+    expect(provider.calls.map(call => call.kind)).toEqual(['snapshot', 'act'])
+  })
+
+  it('projects only declared provider result fields', async () => {
+    const { ctx, provider } = await setup()
+    provider.extraResults = true
+    const snapshot = await run(ctx, 'ui.snapshot.v1', { requestId: 's1' })
+    expect(JSON.stringify(snapshot)).not.toContain('extra')
+    const action = await run(ctx, 'ui.click.v1', { requestId: 'a1', revision: 7, ref: 'u7-a' })
+    expect(JSON.stringify(action)).not.toContain('extra')
+    await run(ctx, 'ui.wait.v1', {
+      requestId: 'w1', condition: 'revision_changed', timeoutMs: 10, afterRevision: 7, actionRequestId: 'a1',
+    })
+    await run(ctx, 'ui.snapshot.v1', { requestId: 's2' })
+    const description = await run(ctx, 'ui.describe_ref.v1', { requestId: 'd1', revision: 7, ref: 'u7-a' })
+    expect(JSON.stringify(description)).not.toContain('extra')
   })
 
   it('consumes a snapshot before a provider action can fail ambiguously', async () => {
