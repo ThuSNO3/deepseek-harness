@@ -1,0 +1,183 @@
+# UI Automation
+
+English | [中文](ui-automation.zh.md)
+
+The [dsh-ui-automation package](../../packages/interaction/ui-automation/README.md) defines a provider-neutral service for semantic host UI observation and bounded actions. Product providers own target identity, safety, approval, transport, and actual input delivery. The [tool Consumer](../../packages/interaction/tool-ui-automation/README.md) owns model schemas and sequencing.
+
+Source: [packages/interaction/ui-automation/src/index.ts](../../packages/interaction/ui-automation/src/index.ts)
+
+## Semantic UI data
+
+Snapshots expose provider-minted refs, semantic state, and only provider-approved scalar values. Every action, wait, and description request carries a caller-issued identity; action results report one terminal outcome. Refs remain valid only for their snapshot revision.
+
+Source: [`packages/interaction/ui-automation/src/types.ts`](../../packages/interaction/ui-automation/src/types.ts)
+
+```ts type-equiv
+/** Provider-minted target reference valid only under its snapshot revision. */
+type UiRef = Branded<'UiRef'>
+```
+
+```ts type-equiv
+/** Caller-issued identity used to pair one request with its outcome. */
+type UiRequestId = Branded<'UiRequestId'>
+```
+
+```ts type-equiv
+/** Bounded JSON scalar a provider has approved for semantic projection. */
+type UiValue = string | number | boolean | null
+```
+
+```ts type-equiv
+/** One provider-approved node in a semantic UI snapshot. */
+interface UiNode {
+  readonly ref: UiRef
+  readonly semanticId: string
+  readonly role: string
+  readonly labelCode: string
+  readonly visible: boolean
+  readonly enabled: boolean
+  readonly checked: boolean | null
+  readonly selected: boolean
+  readonly expanded: boolean | null
+  readonly actions: readonly string[]
+  readonly risk: string
+  readonly parentRef: UiRef | null
+  readonly childRefs: readonly UiRef[]
+  readonly value: UiValue
+  readonly unit: string | null
+  readonly stateCode: string | null
+  readonly reliabilityCode: string | null
+}
+```
+
+```ts type-equiv
+/** Complete bounded observation of one active host-owned UI surface. */
+interface UiSnapshot {
+  readonly revision: number
+  readonly windowId: string
+  readonly modalDepth: number
+  readonly focusRef: UiRef | null
+  readonly busy: boolean
+  readonly nodes: readonly UiNode[]
+  readonly truncated: boolean
+}
+```
+
+```ts type-equiv
+/** Request to observe the current surface for the exact calling Agent. */
+interface UiSnapshotRequest { readonly requestId: UiRequestId }
+```
+
+```ts type-equiv
+/** User-equivalent operation supported by the v1 Consumer vocabulary. */
+type UiAction = 'click' | 'select_item' | 'fill' | 'select_option' | 'set_value' | 'press'
+```
+
+```ts type-equiv
+/** One bounded action against a ref from an exact snapshot revision. */
+interface UiActionRequest {
+  readonly requestId: UiRequestId
+  readonly revision: number
+  readonly ref: UiRef
+  readonly action: UiAction
+  readonly value?: string | number
+  readonly key?: string
+}
+```
+
+```ts type-equiv
+/** Terminal provider outcome for one action, wait, or description request. */
+interface UiActionResult {
+  readonly requestId: UiRequestId
+  readonly resultKind: 'completed' | 'denied' | 'cancelled' | 'timeout'
+  readonly consumedRevision: number
+  readonly detailCode: string
+}
+```
+
+```ts type-equiv
+/** Bounded semantic wait tied to the action that consumed a snapshot. */
+interface UiWaitRequest {
+  readonly requestId: UiRequestId
+  readonly condition: 'revision_changed' | 'modal_visible' | 'semantic_visible'
+  readonly timeoutMs: number
+  readonly afterRevision: number
+  readonly actionRequestId: UiRequestId
+  readonly semanticId?: string
+  readonly expected?: UiValue
+}
+```
+
+```ts type-equiv
+/** Read-only metadata request for a target in an exact snapshot revision. */
+interface UiDescribeRequest {
+  readonly requestId: UiRequestId
+  readonly revision: number
+  readonly ref: UiRef
+}
+```
+
+```ts type-equiv
+/** Provider-approved safe metadata for one target ref. */
+interface UiRefDescription extends UiActionResult {
+  readonly semanticId: string
+  readonly role: string
+  readonly visible: boolean
+  readonly enabled: boolean
+  readonly actions: readonly string[]
+  readonly risk: string
+  readonly stateCode: string | null
+  readonly reliabilityCode: string | null
+}
+```
+
+<!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
+
+<a id="cordis-surface"></a>
+
+## Cordis API
+
+Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+
+<a id="ctxuiautomation--uiautomationservice-abstract-seam"></a>
+
+### `ctx.uiAutomation` — `UiAutomationService` (abstract seam)
+
+Provider-neutral semantic UI automation service. Implementations own ref validity, host policy, delivery, and cancellation settlement.
+
+```ts cordis-catalog
+/**
+ * Observe the calling Agent's current host UI surface.
+ * @param request - Caller-issued request identity.
+ * @param context - Exact Agent subject and cooperative cancellation signal.
+ * @returns A bounded semantic snapshot whose refs are provider-owned.
+ */
+abstract snapshot(request: UiSnapshotRequest, context: UiAutomationCallContext): Promise<UiSnapshot>
+
+/**
+ * Deliver one bounded action against a ref from a prior snapshot.
+ * @param request - Action, target ref, and snapshot revision.
+ * @param context - Exact Agent subject and cooperative cancellation signal.
+ * @returns The provider's terminal dispatch outcome; callers observe UI effects separately.
+ */
+abstract act(request: UiActionRequest, context: UiAutomationCallContext): Promise<UiActionResult>
+
+/**
+ * Wait for one semantic condition after an action.
+ * @param request - Condition, action identity, prior revision, and timeout.
+ * @param context - Exact Agent subject and cooperative cancellation signal.
+ * @returns A completed, timed-out, denied, or cancelled outcome.
+ */
+abstract wait(request: UiWaitRequest, context: UiAutomationCallContext): Promise<UiActionResult>
+
+/**
+ * Read safe metadata for one ref without delivering input.
+ * @param request - Target ref and snapshot revision.
+ * @param context - Exact Agent subject and cooperative cancellation signal.
+ * @returns Provider-approved semantic metadata for the target.
+ */
+abstract describe(request: UiDescribeRequest, context: UiAutomationCallContext): Promise<UiRefDescription>
+```
+
+Source: [`packages/interaction/ui-automation/src/index.ts`](../../packages/interaction/ui-automation/src/index.ts)
+<!-- END GENERATED cordis-surface -->

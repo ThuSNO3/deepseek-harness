@@ -1,0 +1,10 @@
+version: 1
+scenario: ui-automation-turn
+profile: headless
+composition: ui-automation
+recording: authored
+header:
+  class: ui-automation
+  pin: true
+replay:
+  override: true
