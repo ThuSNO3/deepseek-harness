@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-01-windows-hygiene-links.md
+2026-09-01-windows-hygiene-links.md: 6bb602144a6c6a6e98752942451d384b8f089281
+2026-09-01-windows-hygiene-links.zh.md: 07c23f5737e355adb35024ba788cc79d03c8ae59

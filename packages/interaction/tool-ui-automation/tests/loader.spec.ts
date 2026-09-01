@@ -23,12 +23,12 @@ it('registers all UI tools through a real Loader composition', async () => {
     },
   })
   expect(names).toEqual([
-    'ui.click.v1', 'ui.describe_ref.v1', 'ui.fill.v1', 'ui.press.v1',
-    'ui.select_item.v1', 'ui.select_option.v1', 'ui.set_checked.v1', 'ui.set_value.v1',
-    'ui.snapshot.v1', 'ui.wait.v1',
+    'ui.activate_tab.v2', 'ui.click.v2', 'ui.describe_ref.v2', 'ui.fill.v2',
+    'ui.press.v2', 'ui.select_item.v2', 'ui.select_option.v2', 'ui.set_checked.v3',
+    'ui.set_value.v2', 'ui.snapshot.v2', 'ui.wait.v2',
   ])
   expect(result).toEqual([{ type: 'text', text: JSON.stringify({
-    revision: 1, windowId: 'loader.agent', modalDepth: 0, focusRef: null,
-    busy: false, nodes: [], truncated: false,
+    snapshotId: 's-loader', surfaceRevision: 1, windowStack: ['loader.agent'],
+    focusRef: null, busy: false, modalDepth: 0, nodes: [], nextCursor: null, complete: true,
   }) }])
 }, 45_000)

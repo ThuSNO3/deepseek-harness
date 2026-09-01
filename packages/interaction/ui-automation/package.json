@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-ui-automation",
   "description": "Provider-neutral semantic UI automation capability seam (ctx.uiAutomation)",
-  "version": "0.1.2-alpha.1",
+  "version": "0.1.2-alpha.3",
   "publishConfig": {"access": "public"},
   "repository": {
     "type": "git",

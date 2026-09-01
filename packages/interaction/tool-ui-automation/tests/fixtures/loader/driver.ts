@@ -10,8 +10,8 @@ try {
   const snapshot = await ctx.tools.execute({
     signal: new AbortController().signal,
     callId: ToolCallId('ui-loader-snapshot'),
-    name: 'ui.snapshot.v1',
-    arguments: { requestId: 'snapshot-1' },
+    name: 'ui.snapshot.v2',
+    arguments: { requestId: 'snapshot-1', cursor: null, pageSize: 64 },
     agent: { id: 'loader.agent' } as never,
   })
   await writeFile('./ui-tools.json', JSON.stringify({

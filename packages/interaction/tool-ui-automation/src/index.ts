@@ -1,39 +1,60 @@
-/** Model-facing Consumer of the semantic UI automation capability. @module @deepseek-ai/dsh-tool-ui-automation */
+/** Model-facing Consumer of semantic UI automation. @module @deepseek-ai/dsh-tool-ui-automation */
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { ParameterSchemaSpec } from '@deepseek-ai/dsh-tools'
 import type {
-  UiAction, UiActionResult, UiNode, UiRef, UiRefDescription, UiRequestId, UiSnapshot,
+  UiAction, UiActionReceipt, UiActionRequest, UiAutomationCallContext, UiCursor,
+  UiDescribeRequest, UiInputValue, UiKey, UiNode, UiRef, UiRefDescription,
+  UiRequestId, UiSnapshotId, UiSnapshotPage, UiWaitResult,
 } from '@deepseek-ai/dsh-ui-automation'
 
 export const name = 'tool-ui-automation'
 export const inject = ['tools', 'uiAutomation']
 
-interface UiTurnState { revision: number | null; actionRequestId: string | null }
-
-function contextOf(exec: { agent?: Agent; signal: AbortSignal }) {
-  if (exec.agent === undefined) throw new Error('ui_agent_required')
-  return { agent: exec.agent, signal: exec.signal }
+interface UiPendingState { readonly kind: 'pending' }
+interface UiObservedState {
+  readonly kind: 'observed'
+  snapshotId: UiSnapshotId
+  surfaceRevision: number
 }
-
-function actionParameters(extra: Record<string, unknown> = {}) {
-  return {
-    requestId: { type: 'string', required: true } as const,
-    revision: { type: 'integer', required: true } as const,
-    ref: { type: 'string', required: true } as const,
-    ...extra,
-  }
+interface UiAcceptedState {
+  readonly kind: 'accepted'
+  surfaceRevision: number
+  actionRequestId: UiRequestId
 }
+type UiTurnState = UiPendingState | UiObservedState | UiAcceptedState
 
-function render(_args: unknown, value: unknown) {
-  return [{ type: 'text' as const, text: JSON.stringify(value) }]
-}
-
+const render = (_args: unknown, value: unknown) => [{ type: 'text' as const, text: JSON.stringify(value) }]
 const nullableString = { oneOf: [{ type: 'string' }, { type: 'null' }] } as const
 const nullableBoolean = { oneOf: [{ type: 'boolean' }, { type: 'null' }] } as const
 const uiValueSchema = {
   oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }, { type: 'null' }],
+} as const
+const uiInputSchema = {
+  oneOf: [
+    {
+      type: 'object', additionalProperties: false,
+      properties: {
+        kind: { type: 'string', const: 'literal', required: true },
+        text: { type: 'string', required: true },
+      },
+    },
+    {
+      type: 'object', additionalProperties: false,
+      properties: {
+        kind: { type: 'string', const: 'host_slot', required: true },
+        slotRef: { type: 'string', required: true },
+      },
+    },
+  ],
+} as const
+const actionBase = {
+  actionRequestId: { type: 'string', required: true },
+  snapshotId: { type: 'string', required: true },
+  surfaceRevision: { type: 'integer', required: true },
+  ref: { type: 'string', required: true },
 } as const
 const nodeSchema = {
   type: 'object', additionalProperties: false,
@@ -55,25 +76,45 @@ const nodeSchema = {
     unit: { ...nullableString, required: true },
     stateCode: { ...nullableString, required: true },
     reliabilityCode: { ...nullableString, required: true },
+    valueKind: { type: 'string', required: true },
+    literalAllowed: { type: 'boolean', required: true },
+    maxLength: { type: 'integer', required: true },
   },
 } as const
 const snapshotSchema = {
   type: 'object', additionalProperties: false,
   properties: {
-    revision: { type: 'integer', required: true },
-    windowId: { type: 'string', required: true },
-    modalDepth: { type: 'integer', required: true },
+    snapshotId: { type: 'string', required: true },
+    surfaceRevision: { type: 'integer', required: true },
+    windowStack: { type: 'array', items: { type: 'string' }, required: true },
     focusRef: { ...nullableString, required: true },
     busy: { type: 'boolean', required: true },
+    modalDepth: { type: 'integer', required: true },
     nodes: { type: 'array', items: nodeSchema, required: true },
-    truncated: { type: 'boolean', required: true },
+    nextCursor: { ...nullableString, required: true },
+    complete: { type: 'boolean', required: true },
   },
 } as const
-const actionResultSchema = {
+const receiptSchema = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    actionRequestId: { type: 'string', required: true },
+    resultKind: {
+      type: 'string', enum: ['accepted', 'denied', 'rejected', 'cancelled'], required: true,
+    },
+    consumedRevision: { type: 'integer', required: true },
+    detailCode: { type: 'string', required: true },
+    valueCharacterCount: { oneOf: [{ type: 'integer' }, { type: 'null' }], required: true },
+    valueDigest: { ...nullableString, required: true },
+  },
+} as const
+const waitResultSchema = {
   type: 'object', additionalProperties: false,
   properties: {
     requestId: { type: 'string', required: true },
-    resultKind: { type: 'string', enum: ['completed', 'denied', 'cancelled', 'timeout'], required: true },
+    resultKind: {
+      type: 'string', enum: ['completed', 'rejected', 'cancelled', 'timeout'], required: true,
+    },
     consumedRevision: { type: 'integer', required: true },
     detailCode: { type: 'string', required: true },
   },
@@ -81,7 +122,10 @@ const actionResultSchema = {
 const descriptionSchema = {
   type: 'object', additionalProperties: false,
   properties: {
-    ...actionResultSchema.properties,
+    actionRequestId: { type: 'string', required: true },
+    resultKind: { type: 'string', enum: ['completed', 'rejected', 'cancelled'], required: true },
+    consumedRevision: { type: 'integer', required: true },
+    detailCode: { type: 'string', required: true },
     semanticId: { type: 'string', required: true },
     role: { type: 'string', required: true },
     visible: { type: 'boolean', required: true },
@@ -93,153 +137,246 @@ const descriptionSchema = {
   },
 } as const
 
+function contextOf(exec: { agent?: Agent; signal: AbortSignal }): UiAutomationCallContext {
+  if (exec.agent === undefined) throw new Error('ui_agent_required')
+  return { agent: exec.agent, signal: exec.signal }
+}
+
 function projectNode(node: UiNode) {
   return {
     ref: node.ref, semanticId: node.semanticId, role: node.role, labelCode: node.labelCode,
     visible: node.visible, enabled: node.enabled, checked: node.checked, selected: node.selected,
     expanded: node.expanded, actions: [...node.actions], risk: node.risk, parentRef: node.parentRef,
     childRefs: [...node.childRefs], value: node.value, unit: node.unit, stateCode: node.stateCode,
-    reliabilityCode: node.reliabilityCode,
+    reliabilityCode: node.reliabilityCode, valueKind: node.valueKind,
+    literalAllowed: node.literalAllowed, maxLength: node.maxLength,
   }
 }
 
-function projectSnapshot(snapshot: UiSnapshot) {
+function projectSnapshot(page: UiSnapshotPage) {
   return {
-    revision: snapshot.revision, windowId: snapshot.windowId, modalDepth: snapshot.modalDepth,
-    focusRef: snapshot.focusRef, busy: snapshot.busy, nodes: snapshot.nodes.map(projectNode),
-    truncated: snapshot.truncated,
+    snapshotId: page.snapshotId,
+    surfaceRevision: page.surfaceRevision,
+    windowStack: [...page.windowStack],
+    focusRef: page.focusRef,
+    busy: page.busy,
+    modalDepth: page.modalDepth,
+    nodes: page.nodes.map(projectNode),
+    nextCursor: page.nextCursor,
+    complete: page.complete,
   }
 }
 
-function projectActionResult(result: UiActionResult) {
+function projectReceipt(result: UiActionReceipt, hideInputMetadata = false) {
   return {
-    requestId: result.requestId, resultKind: result.resultKind,
-    consumedRevision: result.consumedRevision, detailCode: result.detailCode,
+    actionRequestId: result.actionRequestId,
+    resultKind: result.resultKind,
+    consumedRevision: result.consumedRevision,
+    detailCode: result.detailCode,
+    valueCharacterCount: hideInputMetadata ? null : result.valueCharacterCount,
+    valueDigest: hideInputMetadata ? null : result.valueDigest,
+  }
+}
+
+function projectWait(result: UiWaitResult) {
+  return {
+    requestId: result.requestId,
+    resultKind: result.resultKind,
+    consumedRevision: result.consumedRevision,
+    detailCode: result.detailCode,
   }
 }
 
 function projectDescription(result: UiRefDescription) {
   return {
-    ...projectActionResult(result), semanticId: result.semanticId, role: result.role,
-    visible: result.visible, enabled: result.enabled, actions: [...result.actions], risk: result.risk,
-    stateCode: result.stateCode, reliabilityCode: result.reliabilityCode,
+    actionRequestId: result.actionRequestId,
+    resultKind: result.resultKind,
+    consumedRevision: result.consumedRevision,
+    detailCode: result.detailCode,
+    semanticId: result.semanticId,
+    role: result.role,
+    visible: result.visible,
+    enabled: result.enabled,
+    actions: [...result.actions],
+    risk: result.risk,
+    stateCode: result.stateCode,
+    reliabilityCode: result.reliabilityCode,
   }
 }
 
+/** Register the versioned semantic UI tool set. */
 export function apply(ctx: Context): void {
   const states = new WeakMap<Agent, UiTurnState>()
-  const stateFor = (agent: Agent): UiTurnState => {
-    const current = states.get(agent)
-    if (current !== undefined) return current
-    const created = { revision: null, actionRequestId: null }
-    states.set(agent, created)
-    return created
-  }
   ctx.tools.register(defineTool({
-    name: 'ui.snapshot.v1',
-    description: 'Read the current host-owned semantic UI surface before taking one action.',
-    parameters: { requestId: { type: 'string', required: true } },
+    name: 'ui.snapshot.v2',
+    description: 'Read one page from a Host-owned semantic UI observation lease.',
+    parameters: {
+      requestId: { type: 'string', required: true },
+      cursor: { ...nullableString, required: true },
+      pageSize: { type: 'integer', required: true },
+    },
     output: { schema: snapshotSchema, render },
     async execute(args, exec) {
-      const callContext = contextOf(exec)
-      states.delete(callContext.agent)
-      const result = await ctx.uiAutomation.snapshot({ requestId: args.requestId as UiRequestId }, callContext)
-      states.set(callContext.agent, { revision: result.revision, actionRequestId: null })
-      return projectSnapshot(result)
+      const context = contextOf(exec)
+      const current = states.get(context.agent)
+      if (current?.kind === 'pending') throw new Error('ui_operation_in_progress')
+      const prior = current?.kind === 'observed' ? current : undefined
+      if (args.cursor !== null && prior === undefined) {
+        throw new Error('ui_cursor_without_observation')
+      }
+      const pending: UiPendingState = { kind: 'pending' }
+      states.set(context.agent, pending)
+      try {
+        const result = await ctx.uiAutomation.snapshot({
+          requestId: args.requestId as UiRequestId,
+          cursor: args.cursor as UiCursor | null,
+          pageSize: args.pageSize,
+        }, context)
+        if (args.cursor !== null && prior?.snapshotId !== result.snapshotId) {
+          throw new Error('ui_cursor_snapshot_mismatch')
+        }
+        if (context.signal.aborted) {
+          states.delete(context.agent)
+          return projectSnapshot(result)
+        }
+        states.set(context.agent, {
+          kind: 'observed',
+          snapshotId: result.snapshotId,
+          surfaceRevision: result.surfaceRevision,
+        })
+        return projectSnapshot(result)
+      } catch (error) {
+        states.delete(context.agent)
+        throw error
+      }
     },
   }))
 
-  const registerAction = (toolName: string, action: UiAction, parameters: ReturnType<typeof actionParameters>) => {
+  const registerAction = (
+    toolName: string,
+    action: UiAction,
+    extra: ParameterSchemaSpec = {},
+  ) => {
     ctx.tools.register(defineTool({
       name: toolName,
-      description: 'Perform one bounded action on a ref from the latest semantic UI snapshot.',
-      parameters,
-      output: { schema: actionResultSchema, render },
+      description: 'Deliver one user-equivalent action against the latest semantic UI observation.',
+      parameters: { ...actionBase, ...extra },
+      output: { schema: receiptSchema, render },
       async execute(args, exec) {
-        const callContext = contextOf(exec)
-        const state = stateFor(callContext.agent)
-        if (state.revision === null) throw new Error('ui_observation_required')
-        if (state.actionRequestId !== null) throw new Error('ui_action_pending_observation')
-        if (args.revision !== state.revision) throw new Error('ui_revision_mismatch')
-        state.actionRequestId = args.requestId
-        const request = {
-          requestId: args.requestId as UiRequestId,
-          revision: args.revision,
-          ref: args.ref as UiRef,
-          action,
-          ...'value' in args ? { value: args.value as string | number | boolean } : {},
-          ...'key' in args ? { key: args.key as string } : {},
+        const context = contextOf(exec)
+        const state = states.get(context.agent)
+        if (state?.kind !== 'observed') {
+          throw new Error('ui_observation_required')
         }
-        const result = await ctx.uiAutomation.act(request, callContext)
-        return projectActionResult(result)
+        if (state.snapshotId !== args.snapshotId || state.surfaceRevision !== args.surfaceRevision) {
+          throw new Error('ui_lease_mismatch')
+        }
+        const actionRequestId = args.actionRequestId as UiRequestId
+        states.set(context.agent, { kind: 'pending' })
+        try {
+          const request: UiActionRequest = {
+            actionRequestId,
+            snapshotId: args.snapshotId as UiSnapshotId,
+            surfaceRevision: args.surfaceRevision,
+            ref: args.ref as UiRef,
+            action,
+            ...'value' in args ? { value: args.value as UiInputValue | number | boolean } : {},
+            ...'key' in args ? { key: args.key as UiKey } : {},
+          }
+          const result = await ctx.uiAutomation.act(request, context)
+          const input = 'value' in args ? args.value : undefined
+          const hideInputMetadata = typeof input === 'object' && input !== null
+            && 'kind' in input && input.kind === 'host_slot'
+          if (context.signal.aborted || result.resultKind !== 'accepted') states.delete(context.agent)
+          else states.set(context.agent, {
+            kind: 'accepted', actionRequestId, surfaceRevision: result.consumedRevision,
+          })
+          return projectReceipt(result, hideInputMetadata)
+        } catch (error) {
+          states.delete(context.agent)
+          throw error
+        }
       },
     }))
   }
 
-  registerAction('ui.click.v1', 'click', actionParameters())
-  registerAction('ui.select_item.v1', 'select_item', actionParameters())
-  registerAction('ui.set_checked.v1', 'set_checked', actionParameters({ value: { type: 'boolean', required: true } }))
-  registerAction('ui.fill.v1', 'fill', actionParameters({ value: { type: 'string', required: true } }))
-  registerAction('ui.select_option.v1', 'select_option', actionParameters())
-  registerAction('ui.set_value.v1', 'set_value', actionParameters({ value: { type: 'number', required: true } }))
-  registerAction('ui.press.v1', 'press', actionParameters({
-    key: { type: 'string', required: true, enum: ['enter', 'escape', 'tab', 'up', 'down', 'left', 'right'] },
-  }))
+  registerAction('ui.click.v2', 'click')
+  registerAction('ui.select_item.v2', 'select_item')
+  registerAction('ui.select_option.v2', 'select_option')
+  registerAction('ui.fill.v2', 'fill', { value: { ...uiInputSchema, required: true } })
+  registerAction('ui.set_value.v2', 'set_value', { value: { type: 'number', required: true } })
+  registerAction('ui.press.v2', 'press', {
+    key: {
+      type: 'string', enum: ['enter', 'escape', 'tab', 'up', 'down', 'left', 'right'], required: true,
+    },
+  })
+  registerAction('ui.activate_tab.v2', 'activate_tab')
+  registerAction('ui.set_checked.v3', 'set_checked', {
+    value: { type: 'boolean', required: true },
+  })
 
   ctx.tools.register(defineTool({
-    name: 'ui.wait.v1',
-    description: 'Wait for a bounded semantic condition after the latest UI action.',
+    name: 'ui.wait.v2',
+    description: 'Wait for one semantic condition bound to the latest accepted UI action.',
     parameters: {
       requestId: { type: 'string', required: true },
-      condition: { type: 'string', required: true, enum: ['revision_changed', 'modal_visible', 'semantic_visible'] },
-      timeoutMs: { type: 'integer', required: true },
-      afterRevision: { type: 'integer', required: true },
       actionRequestId: { type: 'string', required: true },
-      semanticId: { type: 'string' },
-      expected: uiValueSchema,
+      afterRevision: { type: 'integer', required: true },
+      condition: { type: 'string', required: true },
+      timeoutMs: { type: 'integer', required: true },
+      semanticId: { ...nullableString, required: true },
+      expected: { ...uiValueSchema, required: true },
     },
-    output: { schema: actionResultSchema, render },
+    output: { schema: waitResultSchema, render },
     async execute(args, exec) {
-      const callContext = contextOf(exec)
-      const state = stateFor(callContext.agent)
-      if (state.revision === null || state.actionRequestId === null) throw new Error('ui_observation_required')
-      if (args.afterRevision !== state.revision) throw new Error('ui_revision_mismatch')
-      if (args.actionRequestId !== state.actionRequestId) throw new Error('ui_action_request_mismatch')
+      const context = contextOf(exec)
+      const state = states.get(context.agent)
+      if (state?.kind !== 'accepted' || state.actionRequestId !== args.actionRequestId
+        || state.surfaceRevision !== args.afterRevision) {
+        throw new Error('ui_action_request_mismatch')
+      }
+      states.set(context.agent, { kind: 'pending' })
       try {
-        const result = await ctx.uiAutomation.wait({
+        return projectWait(await ctx.uiAutomation.wait({
           requestId: args.requestId as UiRequestId,
+          actionRequestId: args.actionRequestId as UiRequestId,
+          afterRevision: args.afterRevision,
           condition: args.condition,
           timeoutMs: args.timeoutMs,
-          afterRevision: args.afterRevision,
-          actionRequestId: args.actionRequestId as UiRequestId,
-          ...args.semanticId !== undefined ? { semanticId: args.semanticId } : {},
-          ...args.expected !== undefined ? { expected: args.expected } : {},
-        }, callContext)
-        return projectActionResult(result)
+          semanticId: args.semanticId,
+          expected: args.expected,
+        }, context))
       } finally {
-        states.delete(callContext.agent)
+        states.delete(context.agent)
       }
     },
   }))
 
   ctx.tools.register(defineTool({
-    name: 'ui.describe_ref.v1',
-    description: 'Describe safe metadata for one ref from the latest semantic UI snapshot.',
-    parameters: actionParameters(),
+    name: 'ui.describe_ref.v2',
+    description: 'Consume the latest semantic observation and return safe target metadata.',
+    parameters: actionBase,
     output: { schema: descriptionSchema, render },
     async execute(args, exec) {
-      const callContext = contextOf(exec)
-      const state = stateFor(callContext.agent)
-      if (state.revision === null) throw new Error('ui_observation_required')
-      if (state.actionRequestId !== null) throw new Error('ui_action_pending_observation')
-      if (args.revision !== state.revision) throw new Error('ui_revision_mismatch')
-      states.delete(callContext.agent)
-      const result = await ctx.uiAutomation.describe({
-        requestId: args.requestId as UiRequestId,
-        revision: args.revision,
-        ref: args.ref as UiRef,
-      }, callContext)
-      return projectDescription(result)
+      const context = contextOf(exec)
+      const state = states.get(context.agent)
+      if (state?.kind !== 'observed') {
+        throw new Error('ui_observation_required')
+      }
+      if (state.snapshotId !== args.snapshotId || state.surfaceRevision !== args.surfaceRevision) {
+        throw new Error('ui_lease_mismatch')
+      }
+      states.set(context.agent, { kind: 'pending' })
+      try {
+        return projectDescription(await ctx.uiAutomation.describe({
+          actionRequestId: args.actionRequestId as UiRequestId,
+          snapshotId: args.snapshotId as UiSnapshotId,
+          surfaceRevision: args.surfaceRevision,
+          ref: args.ref as UiRef,
+        } satisfies UiDescribeRequest, context))
+      } finally {
+        states.delete(context.agent)
+      }
     },
   }))
 }

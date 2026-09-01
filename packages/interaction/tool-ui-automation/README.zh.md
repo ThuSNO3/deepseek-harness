@@ -1,5 +1,5 @@
 ---
-description: "基于 ctx.uiAutomation 的十个模型侧语义 UI 工具。"
+description: "基于 ctx.uiAutomation 的十一个模型侧语义 UI 工具。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-此 Consumer 在 `ctx.uiAutomation` 上注册十个 typed UI 工具。每个 Agent 先取快照，最多执行一个 action，然后 wait 或获取新快照。确切 Agent 与工具 AbortSignal 会传给 Provider。插件卸载会移除全部工具和插件局部状态。
+此 Consumer 在 ctx.uiAutomation 上注册十一个 typed UI 工具。每个 Agent 获取分页观察后最多执行一个 action，然后 wait 或重新观察。确切 Agent 与工具 AbortSignal 会传给 Provider。插件卸载会移除全部工具，并使按 Agent 索引的状态不可达。
 
 ## 目录
 
@@ -29,7 +29,7 @@ kind: "package-reference"
 
 #### 模型看到的内容
 
-模型会看到生成的[十个 UI 工具 schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-ui-automation)：snapshot、click、select-item、set-checked、fill、select-option、set-value、press、wait 和 describe-ref。`set-checked` 要求显式布尔目标状态，因此重复同一请求不会反转已经满足的 checkbox。
+模型会看到生成的[十一个 UI 工具 schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-ui-automation)：snapshot、click、select-item、set-checked、fill、select-option、set-value、press、activate-tab、wait 和 describe-ref。Snapshot 接受 Provider 签发的分页 cursor。Fill 接受 literal text 或不透明 Host slot。set-checked 要求显式布尔状态，因此重放请求不会反转已经满足的 checkbox。
 
 #### Token 影响
 
@@ -43,11 +43,11 @@ kind: "package-reference"
 
 #### 模型看到的内容
 
-调用和 Provider JSON 结果作为普通 `tool/call` 与 `tool/result` 事件保留。
+调用和经过投影的 Provider 结果作为普通 tool/call 与 tool/result 事件保留。Host slot 只暴露不透明引用；Host 持有的值不会进入工具参数或结果。
 
 #### Token 影响
 
-快照内容和 action 值会增加依数据而定的保留 token。
+Snapshot page、literal action value 和结果会增加依数据而定的保留 token。
 
 #### KV Cache 影响
 
@@ -56,5 +56,5 @@ kind: "package-reference"
 <a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与延期工作
 
-- Consumer 保留 v1 顺序；分页、typed literal/host-slot value 和显式 cancel 属于后续版本。
-- 哪些控件存在、哪些值安全、哪些 action 需要审批由 Provider policy 决定。
+- Wait condition 与 error code 是 Provider 自有字符串，因为不同产品观察不同权威状态。
+- 哪些控件存在、哪些 literal value 安全、哪些 Host slot 可被消耗、哪些 action 需要审批，均由 Provider policy 决定。

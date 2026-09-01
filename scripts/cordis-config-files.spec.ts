@@ -1,4 +1,5 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -32,5 +33,35 @@ describe('cordisConfigFiles', () => {
       join('apps', 'cli', 'config', 'examples', 'agent.cordis.yaml'),
       join('apps', 'cli', 'config', 'examples', 'headless.cordis.yml'),
     ])
+  })
+
+  it.skipIf(process.platform === 'win32')('does not scan a linked config twice', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-cordis-config-link-'))
+    roots.push(root)
+    mkdirSync(join(root, 'configs'), { recursive: true })
+    writeFileSync(join(root, 'configs/source.cordis.yml'), '[]\n')
+    symlinkSync('source.cordis.yml', join(root, 'configs/alias.cordis.yml'))
+
+    expect(cordisConfigFiles(root)).toEqual([join('configs', 'source.cordis.yml')])
+  })
+
+  it('rejects an indexed link whose target is not independently discoverable', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-cordis-index-link-'))
+    roots.push(root)
+    mkdirSync(join(root, 'configs'), { recursive: true })
+    writeFileSync(join(root, 'configs/source.yml'), '[]\n')
+    writeFileSync(join(root, 'configs/alias.cordis.yml'), 'source.yml')
+    execFileSync('git', ['init', '--quiet'], { cwd: root })
+    const oid = execFileSync('git', ['hash-object', '-w', '--stdin'], {
+      cwd: root, input: 'source.yml', encoding: 'utf8',
+    }).trim()
+    execFileSync('git', [
+      'update-index', '--add', '--cacheinfo', '120000,' + oid + ',configs/alias.cordis.yml',
+    ], { cwd: root })
+
+    expect(() => cordisConfigFiles(root)).toThrow(
+      'configs/alias.cordis.yml: linked Loader config target configs/source.yml '
+      + 'must be independently discoverable',
+    )
   })
 })

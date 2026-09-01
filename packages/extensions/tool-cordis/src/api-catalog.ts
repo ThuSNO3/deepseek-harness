@@ -2662,31 +2662,31 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
     key: 'uiAutomation',
     summary: 'Provider-neutral semantic UI automation service.',
-    description: 'Provider-neutral semantic UI automation service. Implementations own ref validity, host policy, delivery, and cancellation settlement.',
+    description: 'Provider-neutral semantic UI automation service.',
     methods: [
       {
-        signature: 'abstract snapshot(request: UiSnapshotRequest, context: UiAutomationCallContext): Promise<UiSnapshot>',
-        description: 'Observe the calling Agent\'s current host UI surface.',
-        parameters: [{ name: 'request', description: 'Caller-issued request identity.' }, { name: 'context', description: 'Exact Agent subject and cooperative cancellation signal.' }],
-        returns: 'A bounded semantic snapshot whose refs are provider-owned.',
+        signature: 'abstract snapshot(request: UiSnapshotRequest, context: UiAutomationCallContext): Promise<UiSnapshotPage>',
+        description: 'Observe one page of the calling Agent\'s current Host UI. A null cursor starts a new lease; a non-null cursor consumes one Provider-minted continuation.',
+        parameters: [{ name: 'request', description: 'Request identity, continuation, and page bound.' }, { name: 'context', description: 'Exact Agent and cooperative cancellation signal.' }],
+        returns: 'One stable page with opaque refs and an optional next cursor.',
       },
       {
-        signature: 'abstract act(request: UiActionRequest, context: UiAutomationCallContext): Promise<UiActionResult>',
-        description: 'Deliver one bounded action against a ref from a prior snapshot.',
-        parameters: [{ name: 'request', description: 'Action, target ref, and snapshot revision.' }, { name: 'context', description: 'Exact Agent subject and cooperative cancellation signal.' }],
-        returns: 'The provider\'s terminal dispatch outcome; callers observe UI effects separately.',
+        signature: 'abstract act(request: UiActionRequest, context: UiAutomationCallContext): Promise<UiActionReceipt>',
+        description: 'Admit one user-equivalent action against an exact observation lease.',
+        parameters: [{ name: 'request', description: 'Action identity, lease, target ref, and bounded input.' }, { name: 'context', description: 'Exact Agent and cooperative cancellation signal.' }],
+        returns: 'Admission only; Consumers observe effects through wait or a new snapshot.',
       },
       {
-        signature: 'abstract wait(request: UiWaitRequest, context: UiAutomationCallContext): Promise<UiActionResult>',
-        description: 'Wait for one semantic condition after an action.',
-        parameters: [{ name: 'request', description: 'Condition, action identity, prior revision, and timeout.' }, { name: 'context', description: 'Exact Agent subject and cooperative cancellation signal.' }],
-        returns: 'A completed, timed-out, denied, or cancelled outcome.',
+        signature: 'abstract wait(request: UiWaitRequest, context: UiAutomationCallContext): Promise<UiWaitResult>',
+        description: 'Wait for one semantic condition after an accepted action.',
+        parameters: [{ name: 'request', description: 'Condition, accepted-action identity, revision, and time bound.' }, { name: 'context', description: 'Exact Agent and cooperative cancellation signal.' }],
+        returns: 'The Provider\'s completed, rejected, cancelled, or timed-out result.',
       },
       {
         signature: 'abstract describe(request: UiDescribeRequest, context: UiAutomationCallContext): Promise<UiRefDescription>',
-        description: 'Read safe metadata for one ref without delivering input.',
-        parameters: [{ name: 'request', description: 'Target ref and snapshot revision.' }, { name: 'context', description: 'Exact Agent subject and cooperative cancellation signal.' }],
-        returns: 'Provider-approved semantic metadata for the target.',
+        description: 'Consume an observation lease to read safe metadata without delivering input.',
+        parameters: [{ name: 'request', description: 'Target ref and exact observation lease.' }, { name: 'context', description: 'Exact Agent and cooperative cancellation signal.' }],
+        returns: 'Provider-approved target metadata.',
       },
     ],
   },
@@ -5968,27 +5968,51 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'UiAction',
-    declaration: 'export type UiAction = \'click\' | \'select_item\' | \'set_checked\' | \'fill\' | \'select_option\' | \'set_value\' | \'press\';',
+    declaration: 'export type UiAction = \'click\' | \'select_item\' | \'set_checked\' | \'fill\' | \'select_option\' | \'set_value\' | \'press\' | \'activate_tab\';',
+  },
+  {
+    name: 'UiActionReceipt',
+    declaration: 'export interface UiActionReceipt {\n    readonly actionRequestId: UiRequestId;\n    readonly resultKind: \'accepted\' | \'denied\' | \'rejected\' | \'cancelled\';\n    readonly consumedRevision: number;\n    readonly detailCode: string;\n    readonly valueCharacterCount: number | null;\n    readonly valueDigest: string | null;\n}',
   },
   {
     name: 'UiActionRequest',
-    declaration: 'export interface UiActionRequest {\n    readonly requestId: UiRequestId;\n    readonly revision: number;\n    readonly ref: UiRef;\n    readonly action: UiAction;\n    readonly value?: string | number | boolean;\n    readonly key?: string;\n}',
-  },
-  {
-    name: 'UiActionResult',
-    declaration: 'export interface UiActionResult {\n    readonly requestId: UiRequestId;\n    readonly resultKind: \'completed\' | \'denied\' | \'cancelled\' | \'timeout\';\n    readonly consumedRevision: number;\n    readonly detailCode: string;\n}',
+    declaration: 'export interface UiActionRequest {\n    readonly actionRequestId: UiRequestId;\n    readonly snapshotId: UiSnapshotId;\n    readonly surfaceRevision: number;\n    readonly ref: UiRef;\n    readonly action: UiAction;\n    readonly value?: UiInputValue | number | boolean;\n    readonly key?: UiKey;\n}',
   },
   {
     name: 'UiAutomationCallContext',
     declaration: 'export interface UiAutomationCallContext {\n    readonly agent: Agent;\n    readonly signal: AbortSignal;\n}',
   },
   {
+    name: 'UiCursor',
+    declaration: 'export type UiCursor = Branded<\'UiCursor\'>;',
+  },
+  {
     name: 'UiDescribeRequest',
-    declaration: 'export interface UiDescribeRequest {\n    readonly requestId: UiRequestId;\n    readonly revision: number;\n    readonly ref: UiRef;\n}',
+    declaration: 'export interface UiDescribeRequest {\n    readonly actionRequestId: UiRequestId;\n    readonly snapshotId: UiSnapshotId;\n    readonly surfaceRevision: number;\n    readonly ref: UiRef;\n}',
+  },
+  {
+    name: 'UiHostSlotInput',
+    declaration: 'export interface UiHostSlotInput {\n    readonly kind: \'host_slot\';\n    readonly slotRef: UiHostSlotRef;\n}',
+  },
+  {
+    name: 'UiHostSlotRef',
+    declaration: 'export type UiHostSlotRef = Branded<\'UiHostSlotRef\'>;',
+  },
+  {
+    name: 'UiInputValue',
+    declaration: 'export type UiInputValue = UiLiteralInput | UiHostSlotInput;',
+  },
+  {
+    name: 'UiKey',
+    declaration: 'export type UiKey = \'enter\' | \'escape\' | \'tab\' | \'up\' | \'down\' | \'left\' | \'right\';',
+  },
+  {
+    name: 'UiLiteralInput',
+    declaration: 'export interface UiLiteralInput {\n    readonly kind: \'literal\';\n    readonly text: string;\n}',
   },
   {
     name: 'UiNode',
-    declaration: 'export interface UiNode {\n    readonly ref: UiRef;\n    readonly semanticId: string;\n    readonly role: string;\n    readonly labelCode: string;\n    readonly visible: boolean;\n    readonly enabled: boolean;\n    readonly checked: boolean | null;\n    readonly selected: boolean;\n    readonly expanded: boolean | null;\n    readonly actions: readonly string[];\n    readonly risk: string;\n    readonly parentRef: UiRef | null;\n    readonly childRefs: readonly UiRef[];\n    readonly value: UiValue;\n    readonly unit: string | null;\n    readonly stateCode: string | null;\n    readonly reliabilityCode: string | null;\n}',
+    declaration: 'export interface UiNode {\n    readonly ref: UiRef;\n    readonly semanticId: string;\n    readonly role: string;\n    readonly labelCode: string;\n    readonly visible: boolean;\n    readonly enabled: boolean;\n    readonly checked: boolean | null;\n    readonly selected: boolean;\n    readonly expanded: boolean | null;\n    readonly actions: readonly UiAction[];\n    readonly risk: string;\n    readonly parentRef: UiRef | null;\n    readonly childRefs: readonly UiRef[];\n    readonly value: UiValue;\n    readonly unit: string | null;\n    readonly stateCode: string | null;\n    readonly reliabilityCode: string | null;\n    readonly valueKind: string;\n    readonly literalAllowed: boolean;\n    readonly maxLength: number;\n}',
   },
   {
     name: 'UiRef',
@@ -5996,19 +6020,23 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'UiRefDescription',
-    declaration: 'export interface UiRefDescription extends UiActionResult {\n    readonly semanticId: string;\n    readonly role: string;\n    readonly visible: boolean;\n    readonly enabled: boolean;\n    readonly actions: readonly string[];\n    readonly risk: string;\n    readonly stateCode: string | null;\n    readonly reliabilityCode: string | null;\n}',
+    declaration: 'export interface UiRefDescription {\n    readonly actionRequestId: UiRequestId;\n    readonly resultKind: \'completed\' | \'rejected\' | \'cancelled\';\n    readonly consumedRevision: number;\n    readonly detailCode: string;\n    readonly semanticId: string;\n    readonly role: string;\n    readonly visible: boolean;\n    readonly enabled: boolean;\n    readonly actions: readonly UiAction[];\n    readonly risk: string;\n    readonly stateCode: string | null;\n    readonly reliabilityCode: string | null;\n}',
   },
   {
     name: 'UiRequestId',
     declaration: 'export type UiRequestId = Branded<\'UiRequestId\'>;',
   },
   {
-    name: 'UiSnapshot',
-    declaration: 'export interface UiSnapshot {\n    readonly revision: number;\n    readonly windowId: string;\n    readonly modalDepth: number;\n    readonly focusRef: UiRef | null;\n    readonly busy: boolean;\n    readonly nodes: readonly UiNode[];\n    readonly truncated: boolean;\n}',
+    name: 'UiSnapshotId',
+    declaration: 'export type UiSnapshotId = Branded<\'UiSnapshotId\'>;',
+  },
+  {
+    name: 'UiSnapshotPage',
+    declaration: 'export interface UiSnapshotPage {\n    readonly snapshotId: UiSnapshotId;\n    readonly surfaceRevision: number;\n    readonly windowStack: readonly string[];\n    readonly focusRef: UiRef | null;\n    readonly busy: boolean;\n    readonly modalDepth: number;\n    readonly nodes: readonly UiNode[];\n    readonly nextCursor: UiCursor | null;\n    readonly complete: boolean;\n}',
   },
   {
     name: 'UiSnapshotRequest',
-    declaration: 'export interface UiSnapshotRequest {\n    readonly requestId: UiRequestId;\n}',
+    declaration: 'export interface UiSnapshotRequest {\n    readonly requestId: UiRequestId;\n    readonly cursor: UiCursor | null;\n    readonly pageSize: number;\n}',
   },
   {
     name: 'UiValue',
@@ -6016,7 +6044,11 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'UiWaitRequest',
-    declaration: 'export interface UiWaitRequest {\n    readonly requestId: UiRequestId;\n    readonly condition: \'revision_changed\' | \'modal_visible\' | \'semantic_visible\';\n    readonly timeoutMs: number;\n    readonly afterRevision: number;\n    readonly actionRequestId: UiRequestId;\n    readonly semanticId?: string;\n    readonly expected?: UiValue;\n}',
+    declaration: 'export interface UiWaitRequest {\n    readonly requestId: UiRequestId;\n    readonly actionRequestId: UiRequestId;\n    readonly afterRevision: number;\n    readonly condition: string;\n    readonly timeoutMs: number;\n    readonly semanticId: string | null;\n    readonly expected: UiValue;\n}',
+  },
+  {
+    name: 'UiWaitResult',
+    declaration: 'export interface UiWaitResult {\n    readonly requestId: UiRequestId;\n    readonly resultKind: \'completed\' | \'rejected\' | \'cancelled\' | \'timeout\';\n    readonly consumedRevision: number;\n    readonly detailCode: string;\n}',
   },
   {
     name: 'UpdateTeamTaskRequest',

@@ -5,5 +5,10 @@
     - id: tool-ui-automation
       name: '@deepseek-ai/dsh-tool-ui-automation'
 
-- id: timeout-policy
-  name: '@deepseek-ai/dsh-tool-call-timeout-policy'
+- id: tool-bash
+  name: '@deepseek-ai/dsh-tool-bash'
+  disabled: true
+
+- id: tool-pwsh
+  name: '@deepseek-ai/dsh-tool-pwsh'
+  disabled: true

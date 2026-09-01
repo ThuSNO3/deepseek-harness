@@ -3,8 +3,8 @@
     "kind": "chunks",
     "chunks": [
       { "type": "block-start", "index": 0, "blockType": "tool-call" },
-      { "type": "tool-call-delta", "index": 0, "id": "ui-snapshot", "name": "ui.snapshot.v1", "argumentsDelta": "{\"requestId\":\"s1\"}" },
-      { "type": "block-end", "index": 0, "block": { "type": "tool-call", "id": "ui-snapshot", "name": "ui.snapshot.v1", "arguments": "{\"requestId\":\"s1\"}" } },
+      { "type": "tool-call-delta", "index": 0, "id": "ui-snapshot", "name": "ui.snapshot.v2", "argumentsDelta": "{\"requestId\":\"s1\",\"cursor\":null,\"pageSize\":64}" },
+      { "type": "block-end", "index": 0, "block": { "type": "tool-call", "id": "ui-snapshot", "name": "ui.snapshot.v2", "arguments": "{\"requestId\":\"s1\",\"cursor\":null,\"pageSize\":64}" } },
       { "type": "usage", "usage": { "inputTokens": 10, "outputTokens": 5 } },
       { "type": "finish", "reason": { "kind": "tool-calls" } }
     ]
@@ -13,8 +13,8 @@
     "kind": "chunks",
     "chunks": [
       { "type": "block-start", "index": 0, "blockType": "tool-call" },
-      { "type": "tool-call-delta", "index": 0, "id": "ui-fill", "name": "ui.fill.v1", "argumentsDelta": "{\"requestId\":\"a1\",\"revision\":1,\"ref\":\"u1-name\",\"value\":\"Ada\"}" },
-      { "type": "block-end", "index": 0, "block": { "type": "tool-call", "id": "ui-fill", "name": "ui.fill.v1", "arguments": "{\"requestId\":\"a1\",\"revision\":1,\"ref\":\"u1-name\",\"value\":\"Ada\"}" } },
+      { "type": "tool-call-delta", "index": 0, "id": "ui-fill", "name": "ui.fill.v2", "argumentsDelta": "{\"actionRequestId\":\"a1\",\"snapshotId\":\"s-ui-turn\",\"surfaceRevision\":1,\"ref\":\"u1-name\",\"value\":{\"kind\":\"host_slot\",\"slotRef\":\"h-name\"}}" },
+      { "type": "block-end", "index": 0, "block": { "type": "tool-call", "id": "ui-fill", "name": "ui.fill.v2", "arguments": "{\"actionRequestId\":\"a1\",\"snapshotId\":\"s-ui-turn\",\"surfaceRevision\":1,\"ref\":\"u1-name\",\"value\":{\"kind\":\"host_slot\",\"slotRef\":\"h-name\"}}" } },
       { "type": "usage", "usage": { "inputTokens": 10, "outputTokens": 5 } },
       { "type": "finish", "reason": { "kind": "tool-calls" } }
     ]
@@ -23,8 +23,8 @@
     "kind": "chunks",
     "chunks": [
       { "type": "block-start", "index": 0, "blockType": "tool-call" },
-      { "type": "tool-call-delta", "index": 0, "id": "ui-wait", "name": "ui.wait.v1", "argumentsDelta": "{\"requestId\":\"w1\",\"condition\":\"revision_changed\",\"timeoutMs\":1000,\"afterRevision\":1,\"actionRequestId\":\"a1\"}" },
-      { "type": "block-end", "index": 0, "block": { "type": "tool-call", "id": "ui-wait", "name": "ui.wait.v1", "arguments": "{\"requestId\":\"w1\",\"condition\":\"revision_changed\",\"timeoutMs\":1000,\"afterRevision\":1,\"actionRequestId\":\"a1\"}" } },
+      { "type": "tool-call-delta", "index": 0, "id": "ui-wait", "name": "ui.wait.v2", "argumentsDelta": "{\"requestId\":\"w1\",\"actionRequestId\":\"a1\",\"afterRevision\":1,\"condition\":\"revision_changed\",\"timeoutMs\":1000,\"semanticId\":null,\"expected\":null}" },
+      { "type": "block-end", "index": 0, "block": { "type": "tool-call", "id": "ui-wait", "name": "ui.wait.v2", "arguments": "{\"requestId\":\"w1\",\"actionRequestId\":\"a1\",\"afterRevision\":1,\"condition\":\"revision_changed\",\"timeoutMs\":1000,\"semanticId\":null,\"expected\":null}" } },
       { "type": "usage", "usage": { "inputTokens": 10, "outputTokens": 5 } },
       { "type": "finish", "reason": { "kind": "tool-calls" } }
     ]

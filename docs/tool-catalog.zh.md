@@ -51,18 +51,21 @@
 
 ## `@deepseek-ai/dsh-tool-ui-automation`
 
-### `ui.click.v1`
+### `ui.activate_tab.v2`
 
-对最新语义 UI 快照中的 ref 执行一个有界 action。
+针对最新语义 UI 观察投递一个等同用户操作的动作。
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -70,8 +73,9 @@
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref"
   ]
 }
@@ -79,18 +83,21 @@
 
 源码： [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.describe_ref.v1`
+### `ui.click.v2`
 
-描述最新语义 UI 快照中一个 ref 的安全 metadata。
+针对最新语义 UI 观察投递一个等同用户操作的动作。
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -98,8 +105,9 @@
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref"
   ]
 }
@@ -107,30 +115,101 @@
 
 源码： [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.fill.v1`
+### `ui.describe_ref.v2`
 
-对最新语义 UI 快照中的 ref 执行一个有界 action。
+消耗最新语义观察并返回安全目标 metadata。
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
+      "type": "integer"
+    },
+    "ref": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
+    "ref"
+  ]
+}
+```
+
+源码： [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+### `ui.fill.v2`
+
+针对最新语义 UI 观察投递一个等同用户操作的动作。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "actionRequestId": {
+      "type": "string"
+    },
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
       "type": "string"
     },
     "value": {
-      "type": "string"
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "literal"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "host_slot"
+            },
+            "slotRef": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "slotRef"
+          ]
+        }
+      ]
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref",
     "value"
   ]
@@ -139,18 +218,21 @@
 
 源码： [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.press.v1`
+### `ui.press.v2`
 
-对最新语义 UI 快照中的 ref 执行一个有界 action。
+针对最新语义 UI 观察投递一个等同用户操作的动作。
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -170,8 +252,9 @@
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref",
     "key"
   ]
@@ -180,18 +263,21 @@
 
 源码： [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.select_item.v1`
+### `ui.select_item.v2`
 
-对最新语义 UI 快照中的 ref 执行一个有界 action。
+针对最新语义 UI 观察投递一个等同用户操作的动作。
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -199,8 +285,9 @@
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref"
   ]
 }
@@ -208,18 +295,21 @@
 
 源码： [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.select_option.v1`
+### `ui.select_option.v2`
 
-对最新语义 UI 快照中的 ref 执行一个有界 action。
+针对最新语义 UI 观察投递一个等同用户操作的动作。
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -227,8 +317,9 @@
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref"
   ]
 }
@@ -236,18 +327,21 @@
 
 源码： [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.set_checked.v1`
+### `ui.set_checked.v3`
 
-对最新语义 UI 快照中的 ref 执行一个有界 action。
+针对最新语义 UI 观察投递一个等同用户操作的动作。
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -258,8 +352,9 @@
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref",
     "value"
   ]
@@ -268,18 +363,21 @@
 
 源码： [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.set_value.v1`
+### `ui.set_value.v2`
 
-对最新语义 UI 快照中的 ref 执行一个有界 action。
+针对最新语义 UI 观察投递一个等同用户操作的动作。
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -290,8 +388,9 @@
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref",
     "value"
   ]
@@ -300,9 +399,9 @@
 
 源码： [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.snapshot.v1`
+### `ui.snapshot.v2`
 
-执行一个 action 前读取当前 Host 自有语义 UI 界面。
+从 Host 自有语义 UI 观察租约读取一页。
 
 ```json
 {
@@ -310,19 +409,34 @@
   "properties": {
     "requestId": {
       "type": "string"
+    },
+    "cursor": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pageSize": {
+      "type": "integer"
     }
   },
   "required": [
-    "requestId"
+    "requestId",
+    "cursor",
+    "pageSize"
   ]
 }
 ```
 
 源码： [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.wait.v1`
+### `ui.wait.v2`
 
-在最近一次 UI action 后等待一个有界语义条件。
+等待绑定到最近 accepted UI action 的一个语义条件。
 
 ```json
 {
@@ -331,25 +445,27 @@
     "requestId": {
       "type": "string"
     },
-    "condition": {
-      "type": "string",
-      "enum": [
-        "revision_changed",
-        "modal_visible",
-        "semantic_visible"
-      ]
-    },
-    "timeoutMs": {
-      "type": "integer"
+    "actionRequestId": {
+      "type": "string"
     },
     "afterRevision": {
       "type": "integer"
     },
-    "actionRequestId": {
+    "condition": {
       "type": "string"
     },
+    "timeoutMs": {
+      "type": "integer"
+    },
     "semanticId": {
-      "type": "string"
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "expected": {
       "oneOf": [
@@ -370,18 +486,19 @@
   },
   "required": [
     "requestId",
+    "actionRequestId",
+    "afterRevision",
     "condition",
     "timeoutMs",
-    "afterRevision",
-    "actionRequestId"
+    "semanticId",
+    "expected"
   ]
 }
 ```
 
 源码： [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-Consumer 需要 Host Provider，并对每个 Agent 执行 snapshot、一个 action、随后 wait 或重新观察的顺序。
-
+Consumer 需要 Host Provider，并对每个 Agent 强制执行 snapshot、一个 action、随后 wait 或重新观察的顺序。
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 

@@ -15,7 +15,7 @@ This table connects model-visible tool names to the plugin package and service s
 
 | Tool package | Model-visible names | Requires | Writes / affects | Shipped aliases | Deployment note |
 | --- | --- | --- | --- | --- | --- |
-| `@deepseek-ai/dsh-tool-ui-automation` | `ui.click.v1`, `ui.describe_ref.v1`, `ui.fill.v1`, `ui.press.v1`, `ui.select_item.v1`, `ui.select_option.v1`, `ui.set_checked.v1`, `ui.set_value.v1`, `ui.snapshot.v1`, `ui.wait.v1` | `ctx.tools`, `ctx.uiAutomation` | `tool/call`, `tool/result after the host provider observes or acts` | - | The Consumer requires a host provider and enforces snapshot, one action, then wait or observe again per Agent. |
+| `@deepseek-ai/dsh-tool-ui-automation` | `ui.activate_tab.v2`, `ui.click.v2`, `ui.describe_ref.v2`, `ui.fill.v2`, `ui.press.v2`, `ui.select_item.v2`, `ui.select_option.v2`, `ui.set_checked.v3`, `ui.set_value.v2`, `ui.snapshot.v2`, `ui.wait.v2` | `ctx.tools`, `ctx.uiAutomation` | `tool/call`, `tool/result after the host provider observes or acts` | - | The Consumer requires a host provider and enforces snapshot, one action, then wait or observe again per Agent. |
 | `@deepseek-ai/dsh-tool-ask-user` | `ask_user_question` | `ctx.tools`, `ctx.userQuestions` | `tool/call`, `tool/result after a UI/provider answers the question` | - | ask_user_question pauses the tool call until the active UI provider returns a human answer. |
 | `@deepseek-ai/dsh-tools` | `run_code` | `ctx.tools`, `ctx.codeRuntime (execution time)`, `ctx.systemPrompt` | `tool/call`, `one tool/code-dispatch-start + tool/code-dispatch pair per bridged sub-call`, `tool/result` | - | Owned by the tool registry as a reserved transport outside filterable capability layers under `mode: ptc` / `mode: both` (see the PTC mode Agent Note). Under `ptc` it is the registry's only wire contribution; the other visible capabilities are declared in a generated SDK section in the loaded runtime's language, and a program calls them through bindings scheduled under the native concurrency contract (submission-ordered starts and policy; concurrency-safe bodies overlap up to `maxParallelSubCalls`) that re-enter the complete guarded tool pipeline and link each nested execution to this outer result. |
 | `@deepseek-ai/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`, `ctx.systemPrompt`, `ctx.userQuestions (execution time, opportunistic)` | `tool/call`, `plan/mode inactive on an approved review`, `tool/result` | - | exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-questions seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary. |
@@ -47,18 +47,21 @@ This table connects model-visible tool names to the plugin package and service s
 
 ## `@deepseek-ai/dsh-tool-ui-automation`
 
-### `ui.click.v1`
+### `ui.activate_tab.v2`
 
-Perform one bounded action on a ref from the latest semantic UI snapshot.
+Deliver one user-equivalent action against the latest semantic UI observation.
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -66,8 +69,9 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref"
   ]
 }
@@ -75,18 +79,21 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
 
 Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.describe_ref.v1`
+### `ui.click.v2`
 
-Describe safe metadata for one ref from the latest semantic UI snapshot.
+Deliver one user-equivalent action against the latest semantic UI observation.
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -94,8 +101,9 @@ Describe safe metadata for one ref from the latest semantic UI snapshot.
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref"
   ]
 }
@@ -103,30 +111,101 @@ Describe safe metadata for one ref from the latest semantic UI snapshot.
 
 Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.fill.v1`
+### `ui.describe_ref.v2`
 
-Perform one bounded action on a ref from the latest semantic UI snapshot.
+Consume the latest semantic observation and return safe target metadata.
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
+      "type": "integer"
+    },
+    "ref": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
+    "ref"
+  ]
+}
+```
+
+Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
+
+### `ui.fill.v2`
+
+Deliver one user-equivalent action against the latest semantic UI observation.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "actionRequestId": {
+      "type": "string"
+    },
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
       "type": "string"
     },
     "value": {
-      "type": "string"
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "literal"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "host_slot"
+            },
+            "slotRef": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "slotRef"
+          ]
+        }
+      ]
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref",
     "value"
   ]
@@ -135,18 +214,21 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
 
 Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.press.v1`
+### `ui.press.v2`
 
-Perform one bounded action on a ref from the latest semantic UI snapshot.
+Deliver one user-equivalent action against the latest semantic UI observation.
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -166,8 +248,9 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref",
     "key"
   ]
@@ -176,18 +259,21 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
 
 Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.select_item.v1`
+### `ui.select_item.v2`
 
-Perform one bounded action on a ref from the latest semantic UI snapshot.
+Deliver one user-equivalent action against the latest semantic UI observation.
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -195,8 +281,9 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref"
   ]
 }
@@ -204,18 +291,21 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
 
 Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.select_option.v1`
+### `ui.select_option.v2`
 
-Perform one bounded action on a ref from the latest semantic UI snapshot.
+Deliver one user-equivalent action against the latest semantic UI observation.
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -223,8 +313,9 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref"
   ]
 }
@@ -232,18 +323,21 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
 
 Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.set_checked.v1`
+### `ui.set_checked.v3`
 
-Perform one bounded action on a ref from the latest semantic UI snapshot.
+Deliver one user-equivalent action against the latest semantic UI observation.
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -254,8 +348,9 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref",
     "value"
   ]
@@ -264,18 +359,21 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
 
 Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.set_value.v1`
+### `ui.set_value.v2`
 
-Perform one bounded action on a ref from the latest semantic UI snapshot.
+Deliver one user-equivalent action against the latest semantic UI observation.
 
 ```json
 {
   "type": "object",
   "properties": {
-    "requestId": {
+    "actionRequestId": {
       "type": "string"
     },
-    "revision": {
+    "snapshotId": {
+      "type": "string"
+    },
+    "surfaceRevision": {
       "type": "integer"
     },
     "ref": {
@@ -286,8 +384,9 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
     }
   },
   "required": [
-    "requestId",
-    "revision",
+    "actionRequestId",
+    "snapshotId",
+    "surfaceRevision",
     "ref",
     "value"
   ]
@@ -296,9 +395,9 @@ Perform one bounded action on a ref from the latest semantic UI snapshot.
 
 Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.snapshot.v1`
+### `ui.snapshot.v2`
 
-Read the current host-owned semantic UI surface before taking one action.
+Read one page from a Host-owned semantic UI observation lease.
 
 ```json
 {
@@ -306,19 +405,34 @@ Read the current host-owned semantic UI surface before taking one action.
   "properties": {
     "requestId": {
       "type": "string"
+    },
+    "cursor": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pageSize": {
+      "type": "integer"
     }
   },
   "required": [
-    "requestId"
+    "requestId",
+    "cursor",
+    "pageSize"
   ]
 }
 ```
 
 Source: [`packages/interaction/tool-ui-automation/src/index.ts`](../packages/interaction/tool-ui-automation/src/index.ts)
 
-### `ui.wait.v1`
+### `ui.wait.v2`
 
-Wait for a bounded semantic condition after the latest UI action.
+Wait for one semantic condition bound to the latest accepted UI action.
 
 ```json
 {
@@ -327,25 +441,27 @@ Wait for a bounded semantic condition after the latest UI action.
     "requestId": {
       "type": "string"
     },
-    "condition": {
-      "type": "string",
-      "enum": [
-        "revision_changed",
-        "modal_visible",
-        "semantic_visible"
-      ]
-    },
-    "timeoutMs": {
-      "type": "integer"
+    "actionRequestId": {
+      "type": "string"
     },
     "afterRevision": {
       "type": "integer"
     },
-    "actionRequestId": {
+    "condition": {
       "type": "string"
     },
+    "timeoutMs": {
+      "type": "integer"
+    },
     "semanticId": {
-      "type": "string"
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "expected": {
       "oneOf": [
@@ -366,10 +482,12 @@ Wait for a bounded semantic condition after the latest UI action.
   },
   "required": [
     "requestId",
+    "actionRequestId",
+    "afterRevision",
     "condition",
     "timeoutMs",
-    "afterRevision",
-    "actionRequestId"
+    "semanticId",
+    "expected"
   ]
 }
 ```

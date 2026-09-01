@@ -369,7 +369,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'Semantic UI automation seam',
     mode: 'seam',
     consumers: ['tool-ui-automation'],
-    note: 'Host providers own semantic targets and delivery; the Consumer enforces one-action observation discipline per Agent.',
+    note: 'Host Providers own paged semantic observations and delivery; the Consumer enforces one pending observation and one accepted action per Agent.',
   },
   {
     key: 'planMode',

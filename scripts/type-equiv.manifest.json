@@ -2018,7 +2018,37 @@
     },
     {
       "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiSnapshotId",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiCursor",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiHostSlotRef",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
       "symbol": "UiValue",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiLiteralInput",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiHostSlotInput",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiInputValue",
       "source": "packages/interaction/ui-automation/src/types.ts"
     },
     {
@@ -2028,7 +2058,7 @@
     },
     {
       "doc": "docs/subsystems/ui-automation.md",
-      "symbol": "UiSnapshot",
+      "symbol": "UiSnapshotPage",
       "source": "packages/interaction/ui-automation/src/types.ts"
     },
     {
@@ -2043,17 +2073,27 @@
     },
     {
       "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiKey",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
       "symbol": "UiActionRequest",
       "source": "packages/interaction/ui-automation/src/types.ts"
     },
     {
       "doc": "docs/subsystems/ui-automation.md",
-      "symbol": "UiActionResult",
+      "symbol": "UiActionReceipt",
       "source": "packages/interaction/ui-automation/src/types.ts"
     },
     {
       "doc": "docs/subsystems/ui-automation.md",
       "symbol": "UiWaitRequest",
+      "source": "packages/interaction/ui-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/ui-automation.md",
+      "symbol": "UiWaitResult",
       "source": "packages/interaction/ui-automation/src/types.ts"
     },
     {
