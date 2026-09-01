@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-NodeNext consumer fixture 在 Windows 使用 directory junction，在其他平台使用 directory symlink。两者都解析到真实 package 目录，同时保留临时外部 consumer 布局。
+NodeNext consumer fixture 在 Windows 使用 directory junction，在其他平台使用 directory symlink。两者都解析到真实 package 目录，同时保留临时外部 consumer 布局。清理过程会记录并逐个 unlink directory link，再递归删除真实的临时根目录；如果已记录路径不是 link，清理会停止并保留根目录以供安全检查。
 
 Cordis config discovery 排除文件系统 symlink 或 Git index mode 120000 路径。Canonical target 仍会在自己的 repository path 被独立发现和扫描；只有 alias 被排除。
 
@@ -24,4 +24,4 @@ Cordis config discovery 排除文件系统 symlink 或 Git index mode 120000 路
 
 ## Consequences
 
-Windows 无需提权即可运行相同 NodeNext 与 Cordis config 断言。Junction 只存在于临时 NodeNext fixture；config discovery 仍会把每个 canonical in-scope Loader YAML 文件扫描一次。
+Windows 无需提权即可运行相同 NodeNext 与 Cordis config 断言。Junction 只存在于临时 NodeNext fixture，递归清理无法经由 junction 进入其 repository target。Config discovery 仍会把每个 canonical in-scope Loader YAML 文件扫描一次。

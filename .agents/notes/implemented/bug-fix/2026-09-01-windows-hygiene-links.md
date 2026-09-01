@@ -10,7 +10,7 @@ Two hygiene checks required Windows file-symbolic-link privilege even though the
 
 ## Decision
 
-The NodeNext consumer fixture uses directory junctions on Windows and directory symlinks elsewhere. Both resolve the real package directories while preserving the temporary external-consumer layout.
+The NodeNext consumer fixture uses directory junctions on Windows and directory symlinks elsewhere. Both resolve the real package directories while preserving the temporary external-consumer layout. Cleanup records and unlinks each directory link before recursively removing only the real temporary root; a tracked path that is not a link stops cleanup and preserves the root for safe inspection.
 
 Cordis config discovery excludes paths that are file-system symlinks or Git index mode 120000 entries. The canonical target remains independently discoverable and scanned at its own repository path; only the alias is omitted.
 
@@ -24,4 +24,4 @@ Cordis config discovery excludes paths that are file-system symlinks or Git inde
 
 ## Consequences
 
-Windows runs the same NodeNext and Cordis config assertions without elevation. Junctions remain confined to the temporary NodeNext fixture, and config discovery still scans every canonical in-scope Loader YAML file once.
+Windows runs the same NodeNext and Cordis config assertions without elevation. Junctions remain confined to the temporary NodeNext fixture and cannot carry recursive cleanup into their repository targets. Config discovery still scans every canonical in-scope Loader YAML file once.

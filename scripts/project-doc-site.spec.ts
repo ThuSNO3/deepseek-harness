@@ -160,8 +160,12 @@ describe('publishableImage', () => {
     const linked = join(root, 'packages/linked')
     symlinkSync(outside, linked, process.platform === 'win32' ? 'junction' : 'dir')
 
-    expect(publishableImage(join(linked, 'secret.png'), realpathSync(root))).toBeUndefined()
-    expect(publishableImage(join(outside, 'secret.png'), realpathSync(root))).toBeUndefined()
+    try {
+      expect(publishableImage(join(linked, 'secret.png'), realpathSync(root))).toBeUndefined()
+      expect(publishableImage(join(outside, 'secret.png'), realpathSync(root))).toBeUndefined()
+    } finally {
+      unlinkSync(linked)
+    }
   })
 
   it('refuses a directory', () => {

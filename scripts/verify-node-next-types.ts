@@ -7,8 +7,9 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, globSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, globSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+import { removeLinkedTempRoot } from './linked-temp-root.ts'
 
 const root = resolve(import.meta.dirname, '..')
 
@@ -80,11 +81,12 @@ function publicSpecifiers(pkg: WorkspacePackage): string[] {
   return [...specifiers].sort()
 }
 
-function linkPackage(pkg: WorkspacePackage, nodeModules: string): void {
+function linkPackage(pkg: WorkspacePackage, nodeModules: string, links: string[]): void {
   const parts = pkg.name.split('/')
   const link = resolve(nodeModules, ...parts)
   mkdirSync(dirname(link), { recursive: true })
   symlinkSync(pkg.dir, link, process.platform === 'win32' ? 'junction' : 'dir')
+  links.push(link)
 }
 
 const packages = workspacePackages()
@@ -106,18 +108,21 @@ if (missingOutputs.length > 0) {
 }
 
 const tmp = mkdtempSync(resolve(root, '.node-next-types-'))
+const links: string[] = []
 let failed = false
 
 try {
   const nodeModules = resolve(tmp, 'node_modules')
   mkdirSync(nodeModules, { recursive: true })
-  for (const pkg of packages) linkPackage(pkg, nodeModules)
+  for (const pkg of packages) linkPackage(pkg, nodeModules, links)
 
   const rootTypes = resolve(root, 'node_modules/@types/node')
   if (existsSync(rootTypes)) {
     const typesDir = resolve(nodeModules, '@types')
     mkdirSync(typesDir, { recursive: true })
-    symlinkSync(rootTypes, resolve(typesDir, 'node'), process.platform === 'win32' ? 'junction' : 'dir')
+    const rootTypesLink = resolve(typesDir, 'node')
+    symlinkSync(rootTypes, rootTypesLink, process.platform === 'win32' ? 'junction' : 'dir')
+    links.push(rootTypesLink)
   }
 
   writeFileSync(resolve(tmp, 'package.json'), `${JSON.stringify({ type: 'module', private: true }, null, 2)}\n`)
@@ -158,7 +163,7 @@ try {
   console.error('verify-node-next-types: NodeNext consumer typecheck failed.\n')
   console.error(`${output.stdout?.toString() ?? ''}${output.stderr?.toString() ?? ''}`)
 } finally {
-  rmSync(tmp, { recursive: true, force: true })
+  removeLinkedTempRoot(tmp, links)
 }
 
 if (failed) process.exit(1)
