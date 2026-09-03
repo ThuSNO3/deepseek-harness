@@ -1,11 +1,38 @@
 ---
 name: dsh-find-simplifications
-description: 'Use when working in the deepseek-harness repo to find non-obvious simplification candidates, remove redundant comments or implementation-heavy documentation, write proposed Agent Notes or inline TODO/FIXME/XXX notes, audit or coalesce superseded Agent Notes, or fold worthwhile simplification ideas from another PR; especially for dead, duplicated, speculative, over-built, added-then-removed, or hand-rolled-where-a-dependency-exists surfaces.'
+description: 'Use when working in the deepseek-harness repo to discover and, by default for change requests, implement non-obvious simplifications across a recent diff, a target, or the full repository; including dead, duplicated, speculative, over-built, added-then-removed, hand-rolled, comment, documentation, and Agent Note surface.'
 ---
 
 # Finding DeepSeek Harness Simplifications
 
-This skill helps turn a broad "find things to simplify" request into evidence-backed Agent Notes that remove or collapse existing harness surface area. It is guidance, not a checklist: follow the code, keep judgment active, and prefer a few well-proven candidates over a pile of thin guesses.
+This skill turns a simplification request into evidence-backed deletion or consolidation of existing harness surface area. Agent Notes record durable decisions; they are not the default stopping point. It is guidance, not a checklist: follow the code, keep judgment active, and prefer a few well-proven candidates over a pile of thin guesses.
+
+## Select Scope And Execution
+
+Treat scan breadth and execution depth as independent axes. Honor modes the user names; otherwise infer them from the request without widening its authority.
+
+Scope modes:
+
+- **`recent`** (default) — inspect the active working tree, branch, or pull-request diff against its verified live base, or an explicitly named recent range. An unqualified plural such as "recent PRs" does not define a range: use an authoritative repository-provided recent-PR window when one exists, otherwise request the missing boundary instead of selecting arbitrary PRs. If the active diff is empty, report that scope as empty; never silently expand it to the repository.
+- **`targeted`** — inspect the paths, packages, symbols, Agent Notes, or candidate the user names. Follow direct consumers and owned contracts outside those paths only as needed to prove the target.
+- **`full`** — inspect every eligible repository area at the starting base identity, excluding `vendor/` and archived Agent Notes. Record that identity and freeze the candidate set after the broad survey. Upstream changes require a final overlap check, not a restart of the survey.
+
+Execution modes:
+
+- **`complete`** (default for change, build, refactor, simplify, fix, or delivery requests) — discover, freeze the strong candidate set, implement every candidate in that set, verify the result, and bring its Agent Note to the lifecycle matching the outgoing code. A proposed Agent Note is an intermediate artifact, not completion.
+- **`discover`** — stop after evidence, deduplication, and the requested report or proposal artifacts. Use this only when the user explicitly asks to scan, audit, review, report, plan, or propose without implementation, or explicitly names `discover`. "Propose", "report proposals", or "tell me what to do" means proposals in the response and authorizes no edits. Write proposed Agent Notes or local TODOs only when the user explicitly asks to record, add, update, or commit proposal files.
+
+`full` alone selects breadth, not discovery-only behavior. For example, "do a full simplification" is `full + complete`, while "audit the full repository and report candidates" is `full + discover`. Scope breadth does not broaden the kinds of change the user authorized: a cleanup request does not authorize product features, unrelated behavior changes, compatibility policy changes, external coordination, or a rewrite whose risk is materially different from simplification. External actions remain separately authorized: `complete` permits in-scope repository implementation, not an unsolicited commit, push, pull request, merge, issue, or message.
+
+### Freeze And Close The Candidate Set
+
+After surveying the selected scope, freeze the smallest coherent set of strong, non-overlapping candidates that fits the user's requested change and can share one delivery without materially changing its risk or review subject. Reject weak ideas before freezing; do not keep surveying merely to reach a count. A repository-wide scan does not require freezing every strong candidate: record unrelated or independently risky candidates for later, and freeze only the coherent implementation batch that the request authorizes. State the frozen set before implementation so completion cannot be redefined around whichever edit proves easiest. In `complete` mode, every frozen candidate must end in one of these states:
+
+- **implemented** — code, tests, documentation, generated artifacts, and the owning Agent Note agree, with relevant checks passing;
+- **rejected** — implementation evidence defeats the expected net simplification, and any durable proposal is moved to `rejected/` with the reason; or
+- **blocked on new authority or external state** — the remaining decision materially exceeds the request, and the exact blocker is reported after other candidates continue as far as possible.
+
+Do not classify "large", "needs a separate commit", or "would take longer" as reasons to stop at a proposal inside the frozen set. A candidate that needs separate authority, has a materially different risk/review subject, or cannot share the authorized delivery does not enter that set; report or record it for a later run. Split the frozen set into reviewable commits or pull requests when authorized, but continue until it is resolved. If implementation reveals an unrelated candidate, record it for a later run without expanding the frozen set; include newly discovered work only when it is necessary to complete a frozen candidate safely.
 
 ## Start With Repo Context
 
@@ -26,7 +53,7 @@ A strong simplification removes, folds, or demotes something real and has clear 
 - A feature implements speculative product generality: multi-session/session-load, background job rosters, live registry invalidation, mid-turn steering, tool-owned UI rendering, and similar designs with no product owner.
 - An invariant, rollback path, set of expected outputs, or special-case test exists only to protect an unused API.
 - Hand-rolled code reimplements what a well-maintained external package or a Node builtin at the engine floor already provides, and the swap would delete the implementation plus its dedicated tests ([dependency policy](../../notes/implemented/process/2026-07-26-dependencies-over-hand-rolling.md)).
-- The simplified behavior may differ slightly, but the new behavior is still reasonable and easier to explain.
+- The requested simplification explicitly permits a named behavior contraction, and the smaller behavior is documented with what it gives up. Do not infer permission for behavior change merely because a different result seems reasonable.
 
 Thin candidates are not enough for an Agent Note: deleting one typo, running `knip` once, removing an intentionally documented backend/adapter, or flagging "this looks complex" without call-site proof.
 
@@ -47,6 +74,8 @@ Use parallel subagents when the user asks for breadth or many candidates. Give e
 If subagents are unavailable, simulate the same breadth yourself. Do not let the first good candidate stop the survey.
 
 Start with the largest production-code deltas. A broad simplification audit that stops after obvious unused symbols can miss the files where duplicated lifecycle or defensive machinery carries most of the cost.
+
+In `full` mode, survey every domain before freezing candidates. In `recent` and `targeted` modes, breadth means following every affected owner and consumer, not scanning unrelated packages.
 
 ## Simplify Prose With The Code
 
@@ -107,9 +136,9 @@ An added-then-removed feature is a common full-supersession case. Let the remova
 
 Reject consolidation when the removal is only one transport, default, implementation, or presentation of a feature; when persisted data or compatibility handling survives; or when the removal note does not yet carry enough rationale to prevent accidental reintroduction. A current negative design decision may legitimately need its own note even though the removed implementation is gone.
 
-## Write The Agent Note
+## Record And Implement Durable Decisions
 
-Create one file per durable proposal under `.agents/notes/<lifecycle>/<class>/yyyy-mm-dd-topic.md`, following the lifecycle and classification rules in `.agents/notes/README.md`. Keep prose paragraphs on one physical line and use relative Markdown links.
+Create one file per durable proposal under `.agents/notes/<lifecycle>/<class>/yyyy-mm-dd-topic.md`, following the lifecycle and classification rules in `.agents/notes/README.md`. Keep prose paragraphs on one physical line and use relative Markdown links. In `complete` mode, use `proposed/` while the decision is unbuilt, then move and rewrite the note to `implemented/` only after the outgoing code realizes it and the selected evidence passes. If implementation disproves the proposal, move it to `rejected/` with the concrete reason instead of leaving an attractive stale proposal active.
 
 Prefer this structure, adjusting when the idea needs it:
 
@@ -122,6 +151,8 @@ Prefer this structure, adjusting when the idea needs it:
 - `## Risks`: public API changes, behavior changes, future product wants, and why the tradeoff is still reasonable.
 
 Be concrete enough that an implementing PR can follow the trail. Avoid vague "simplify this package" Agent Notes. When a proposal overlaps an existing Agent Note, consolidate the useful details into the existing one rather than creating a duplicate.
+
+Writing the note does not discharge a `complete` run. Continue into implementation unless a new-authority or external-state blocker applies.
 
 ## Inline TODO Notes
 
@@ -154,4 +185,6 @@ When opening or updating a PR, summarize:
 
 For each consolidation group, name the old and current owners, state the evidence for full supersession, and explain why deletion is safe. If an added-then-removed scan finds no qualifying note, report that result and the representative partial cases retained.
 
-Use a draft PR while the survey is still expanding; mark ready only when the candidate set, review responses, and validation are settled.
+When PR creation is explicitly authorized, use a draft while the survey is still expanding and mark it ready only when the candidate set, review responses, and validation are settled. Enabling auto-merge is distinct from waiting for a merged state. Unqualified "auto-merge", "enable auto-merge", or "set auto-merge" ends at verified enablement; wait for and verify `MERGED` only when the user says to merge it, wait until merged, ensure it merges, or otherwise names the merged state as the outcome.
+
+For `complete` runs, report each frozen candidate as implemented or rejected and name any genuine authority/external-state blocker; a list of still-proposed candidates is an incomplete run. For `discover` runs, state explicitly that no implementation was requested or performed.
