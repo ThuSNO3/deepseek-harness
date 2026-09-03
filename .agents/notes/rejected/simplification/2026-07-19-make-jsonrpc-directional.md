@@ -1,6 +1,6 @@
 # Agent Note: Make JSON-RPC completion and transport directional
 
-Status: proposed
+Status: rejected — Later protocol ownership invalidated the broad transport and prompt-settlement changes; only the Python client's unused reverse direction remains removable.
 
 English | [中文](2026-07-19-make-jsonrpc-directional.zh.md)
 

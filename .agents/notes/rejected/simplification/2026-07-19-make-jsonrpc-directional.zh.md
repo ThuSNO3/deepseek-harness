@@ -1,6 +1,6 @@
 # Agent Note: 让 JSON-RPC 完成结果与传输方向单一化
 
-Status: proposed
+Status: rejected — 后续协议归属已使宽泛的 transport 与 prompt 结算改动失效；仅 Python 客户端中无人使用的反向能力仍可删除。
 
 [English](2026-07-19-make-jsonrpc-directional.md) | 中文
 
