@@ -28,7 +28,7 @@ A package without a qualifying relationship omits `src/invariant.ts`, the `./inv
 
 ### Audit result
 
-The repository-wide audit removed the 209 explained-empty companions and the synthetic `dsh-host-webserver` companion, leaving 39 checks with independent observations. The retained set includes cross-event protocols such as session, command, approval, workflow, and hook lifecycles; event-to-state checks such as settings, storage-domain, Workspace, client modules, and slots; multi-producer assembly such as system prompt and time context; and durable data consumed by projections or policy state such as todo, plan mode, and sandbox mode.
+The repository-wide audits remove 209 explained-empty companions, the synthetic `dsh-host-webserver` companion, and the credential companion that only checked service presence when `credentials/reference-updated` fired. The 38 retained checks compare independent observations: cross-event protocols such as session, command, approval, workflow, and hook lifecycles; event-to-state checks such as settings, storage-domain, Workspace, client modules, and slots; multi-producer assembly such as system prompt and time context; and durable data consumed by projections or policy state such as todo, plan mode, and sandbox mode.
 
 Existing package behavior tests remain responsible for omitted relationships, including webserver route registration and HMR disposal. Product behavior and root package entrypoints do not change; the omitted `./invariant` subpaths are removed under the repository's pre-release compatibility stance.
 

@@ -132,15 +132,11 @@ One doctrine and four consequences:
 |---|---|
 | [`src/index.ts`](src/index.ts) | Service Definition: the `credentialRef`/`credentialKey` brands, `ResolvedCredential`/`CredentialRecordInfo`, the abstract provider over both key spaces, contained fan-out |
 | [`src/types.ts`](src/types.ts) | Client-safe type surface: the `CredentialRef` and `CredentialKey` brands, the stored-record union, the `CredentialInfo` reference view, the `credentials/reference-updated` and `credentials/record-updated` declarations |
-| [`src/invariant.ts`](src/invariant.ts) | Invariant companion: `credentials/reference-updated` only fires while a credentials service is live |
+| — | No runtime invariant companion is published; provider lifecycle and event timing share the same service owner, so a second runtime observation would only recheck service presence. Provider suites own teardown and post-commit notification behavior. |
 
 ### Client-safe types
 
 The `./types` subpath export holds the event declarations together with the `CredentialRef` and `CredentialKey` brands, the stored-record union they name, and the `CredentialInfo` reference view a configuration surface reads, and the package root re-exports them. A consumer outside the Host compilation face therefore reads the very signature the Host emits instead of restating it.
-
-### Lifecycle
-
-The service is a Cordis `Service` registered by the provider: disposing the mounting fiber removes `ctx.credentials`. The invariant companion checks that `credentials/reference-updated` never fires without a live service — an emission after disposal means a provider leaked work past its teardown quiescence.
 
 </details>
 
