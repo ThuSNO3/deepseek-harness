@@ -1,53 +1,62 @@
-# Agent Note: 裁剪剩余的无用公共 API 与结果字段
+# Agent Note: 裁剪无用的公开与结果接口
 
 Status: proposed
 
 [English](2026-07-04-prune-dead-core-spine-api.md) | 中文
 
-## Problem
+## 问题
 
-若干公共方法、结果字段、生命周期 hook 与包根导出没有固定生产消费方。测试和生成的 Cordis reflection 让它们继续可见，扩大预发布 API，并迫使实现保留无人使用的状态。本清单把包与应用源码、运行时脚本及随附 Cordis 配置视为生产语料；测试、README、生成目录和 Agent Note 能证明发布事实，但不是固定调用方。
+若干包根导出、结果字段和便利方法没有生产消费方。它们之所以存活，要么是因为测试通过公开入口导入了内部实现，要么是因为某个类型预期了一个从未出现的调用者。每一项单独看都很小，但合在一起，它们扩大了 SDK 约定、生成的 catalog、文档和回归矩阵，却没有支撑任何已交付的路径。
 
-`cordis_inspect` 与 `cordis_mount` 让服务方法及返回字段成为真实的动态产品面，因此删除目录化成员是有意的预发布收缩，即使仓库源码没有调用。包根实现 helper 不同：Loader namespace import 只需要挂载插件约定，测试可以直接导入拥有它们的源码模块，无需把每个 helper 发布到包根。
+生产语料库是 `packages/*/*/src`、示例源码/配置和运行时脚本。测试、包 README 和 Agent Note 行文是发布的证据，但不是固定调用者。`cordis_inspect` 使 `packages/extensions/tool-cordis/src/api-catalog.ts` 对模型可见，`cordis_mount` 可以通过受保护的真实服务代理调用注入的服务，因此 catalog 中的服务方法和返回形状是真正的动态产品接口。下表因此区分「没有固定的仓库调用者」与「不可达」：涉及 catalog 词汇的行有意收缩模型编写的 mount 能发现和调用的内容，而包根实现辅助函数并不通过该服务门面可达。精确符号搜索得出以下清单：
 
-当前精确符号清单如下：
-
-| API 元素 | 消费方证据 | 精简方式 |
+| 接口 | 生产证据 | 简化方式 |
 | --- | --- | --- |
-| `AgentSetupCommit` 与 `AgentSetup` 的返回分支 | Agent-loop 是唯一调用 `commit()` 的代码；ACP、Webhook、API Session Controller、Headless 与 preset 组合中的所有生产 setup callback 都只返回 `void` 或 `Promise<void>`。只有 loop 测试会产生 finalizer。 | 让 setup 只返回 `void`／`Promise<void>`，删除发布 finalizer 分支、相应 rollback 用例，以及宣传可变 provisioning 重校验的目录／文档。 |
-| `PlanModeController.get()`／`set()` | `get()` 没有固定生产调用方；类内部的 `/plan` handler 是 `set()` 唯一固定调用方。包外只剩测试、文档和生成 reflection。 | 删除 `get()`，把 selection 改为 `/plan` 使用的内部操作；保留 command、exit tool、prompt section、持久化 projection、pending-intent 时序与模型可见行为。 |
-| `CompactionResult.startSeq`、`endSeq` 与 `summary` | 生产消费方读取被 shadow 的 range／seq／token 统计，`command-compact` 还读取 `summarySeq` 来生成 `CommandResult.sourceEventSeq`；没有生产消费方读取所列三项回显。其值归持久化事件拥有。 | 只删除三个无用字段并简化结果构造。保留已承担真实职责的 `summarySeq`，以及 compaction 生命周期与 transcript renderer。 |
-| `tool-fs-search` 包根实现导出 | 精确生产搜索找不到包外具名消费方使用 re-export 的 glob／grep builder、parser、formatter、presenter、常量、错误类或运行 helper。插件自身从本地 owner 导入，Loader 消费方只需要 `name`、`inject`、`Config` 与 `apply`。 | 停止从包根 re-export 实现模块；同包测试直接导入源码 owner。保留插件／配置约定，以及实施时被真实外部消费方证明必要的值。 |
-| `tool-web` 包根实现导出 | 精确生产搜索找不到包外具名消费方使用 search／fetch apply helper、formatter、presenter、metadata converter／type 或默认常量。运行时组合挂载 namespace 插件。 | 保留 `name`、`inject`、`Config` 与 `apply`；把 search／fetch 实现 helper 改为源码私有，并把测试移到拥有它们的模块。 |
-| `SubagentDepthError` 根导出 | 生产代码在包内抛出它，但没有生产包导入这个具体类；固定调用方处理服务的公共 error／result 约定。 | 保留深度强制与诊断，但把具体强制错误改为包私有，并通过 start 边界测试。 |
+| `SurfaceManager.invalidate()` | 只有其单元测试调用它；seeding 在惰性创建的 manager 存在之前就已完成，且会话从不替换其日志引用。 | 删除它及其不可能触发的整体替换约定。 |
+| `ToolExecutionResult.callId` | 每个钩子已经接收不可变的 `ToolExecution`；循环和 ACP（Agent Client Protocol）通过调用/会话事件关联。没有消费方读取这个重复的结果字段。 | 移除该字段、复制/不匹配守卫，以及证明该重复不可能不一致的测试。 |
+| `ReactLoopAgent` 根导出 | 包外的命名导入都是测试；生产代码面向 `Agent` 编程，通过 `ctx.agents` 创建/恢复。 | 将返回类型和接口类型设为 `Agent`，将具体循环类改为包内部；保留有意设计的同步、仅配置的 `AgentLoop.create()` 路径。 |
+| `workflow-worker-thread` 的 protocol/runtime/session 再导出与命名的 `WorkerThreadWorkflowEngine` | 所有通过包名导入的消费方都使用默认引擎；工作流 Agent Note 已将 worker 协议格式（wire format）定义为私有。 | 保留默认插件类/配置约定；移除重复的命名类导出，将协议模块保持为源码私有。 |
+| `code-runtime-worker` 的 protocol/bootstrap 再导出 | 包外的生产/e2e 消费方使用 `WorkerThreadCodeRuntime` 和配置，而非 `BootstrapPort`、`PatchableStream` 或 worker 消息/启动类型。 | 保留运行时类/配置约定，将其协议格式/bootstrap 词汇改为源码私有。 |
+| ACP 的 `agentOptions` 根导出 | 该辅助函数只有同文件和 ACP 测试消费方；唯一的包外生产消费方挂载的是插件命名空间。 | 保留 `name`、`inject`、`Config`、`AcpConfig` 和 `apply`；将 `agentOptions` 改为源码私有，通过桥接层行为测试。 |
+| `providerWording` 与 `completedTurnPrefix` 根导出 | 各有一个同包生产调用者；只有 balanced-prefix 辅助函数有一个同包白盒测试。 | 改为源码私有，测试提供方行为。 |
+| `depthOf`、`SubagentDepthError`、`waitForExit` 与 `exitsWithin` 根导出 | 生产 subagent 后端消费的是进程内 runner 和子进程构造/dispose（资源释放）辅助函数，而非这些强制机制和测试内部实现。`SENSITIVE_ENV_PATTERN` 不在其中，因为 SDK helper 会将它应用于调用方传入的环境。 | 保留深度与退出行为，但将剩余辅助函数和 error 改为源码私有；通过 spawn 和 dispose 测试。保持共享凭据正则公开。 |
+| `LlmError.status` 与回放 status | 适配器/回放填充它，但生产分支基于稳定的错误码/消息判断，从不读取原始 status。 | 移除未读字段和回放管道，保留错误分类。 |
+| `BlockAssembler.push()` 返回值 | 两个生产调用者都忽略返回的已完成块。 | 返回 `void`；保留有意公开的 `blocks()`/`message()` 约定。 |
+| `compactRegion` 的独立 `session` 参数 | 固定调用方传入的对象就是 `agent.session` 中已有的对象；模型可见的 mount API 也可以调用该方法，但同时接受两个独立对象，会让挂载的插件传入不一致的组合。 | 保留手动 region API，同时有意将其收窄为以 `agent.session` 为唯一真源。 |
+| `CompactionResult.startSeq`、`summarySeq`、`endSeq` 与 `summary` | 生产消费方只读取 shadowed range/seq/token 统计；持久日志拥有 summary 和事件标识。 | 移除四个结果回显，保留两个共享的 transcript（文本记录）渲染器。 |
+| `BasicCompactionEngine` 的估算/摘要方法可见性 | 没有包外生产调用者调用这五个方法；已实现的 Agent Note 只将 `estimateContentTokens()` 和 `summarize()` 命名为子类钩子。 | 将这两个方法改为 `protected`，其余三个编排专用的估算器改为 private。 |
+| `CodeLogEntry.source`/`level` 与 `RunCodeMeta.dispatches` | 每个生产消费方都将日志映射为文本；没有 presenter/模型路径读取其他字段或持久化的 dispatch 计数。 | 将 code-runtime 日志改为字符串（或纯文本条目），移除 result-meta 的 dispatch 管道；保留用于生成确定性 dispatch id 的本地计数器。 |
+| `CodeRuntime.language` 与 `CodeRuntime.isolation` | worker 后端提供唯一的生产值，而 PTC mode 及其他所有生产调用方只调用 `run()`。 | 移除未读描述符，同时保留 worker 的语言、隔离、预算、取消与资源释放行为。 |
+| `ToolNotFoundError.toolName`、`SystemPrompt.config` 与 `BashTask.command` | 每个存储的公开值都没有生产读取者。 | 移除未读字段，保留错误消息、已解析的配置行为和任务生命周期。 |
+| 后端包根实现辅助函数 | 下方精确清单仅通过相对路径的同包导入调用。生产命名空间导入挂载的是保留的插件约定，不读取这些属性；包根命名导入的消费方都是测试。 | 保留每个适配器/提供方/服务及其配置/错误约定；停止在包根导出所列辅助函数/常量。 |
+| 消费方包根实现辅助函数 | 下方精确清单只有同包生产调用者。生产命名空间导入挂载的是插件约定，不读取辅助属性；包根命名导入的消费方都是测试。 | 保留插件约定和稳定的错误码；将测试迁移到包内模块或公开行为，停止在包根导出所列辅助函数。 |
 
-较早清单中未出现在本表的条目不属于本提案。当前代码已经让 `BlockAssembler.push()` 返回 `void`，不再从包根导出 `ReactLoopAgent` 与 worker protocol，省略了重复的 `ToolExecutionResult.callId`、`ToolNotFoundError.toolName` 与 `SystemPrompt.config` 字段，并在生产路径中使用 `CodeRuntime.language`／`isolation` 以及 `LlmError.status`。实施者必须遵循上表，不能把旧符号清单当作权威。
+### 分组辅助导出清单
 
-## Proposal
+- `dsh-llm-deepseek`：`httpErrorCode`、`serializeMessages`、`serializeRequest`、`DONE`、`parseSse`、`mapFinishReason`、`mapUsage` 与 `translate`；`dsh-llm-pi-ai`：`buildModel`、`mapStopReason`、`mapUsage`、`toPiContext` 与 `toStreamChunks`。
+- `dsh-bash-local`：`DEFAULT_GRACE_MS`、`ENV_OVERRIDES`、`killGroup`、`OutputCollector` 与 `runBash`；`dsh-bash-sandbox`：`shellQuote`、`classifyDenial` 与 `classifyRunnerFailure`；`dsh-sandbox-local`：`bwrapProfileArgs`、`landlockProfileArgs` 与 `seatbeltProfileArgs`。公开的可变测试注入字段及其类型不在本提案范围内。
+- `dsh-fs-local`：`applyLiteralEdit`、`listDirectory`、`probe`、`readForEdit`、`readTextForDiff`、`readWholeText`、`resolveLocalTarget`、`restoreLineEndings`、`streamWholeText` 与 `writeFileAtomic`。
+- `dsh-web-fetch-http`：`classifyContentType`、`decoderForCharset`、`isSameOrigin`、`parseCharset` 与 `validateFetchUrl`；`dsh-web-search-exa`：`mapExaResponse` 与 `mapExaResult`；`dsh-web-search-deepseek`：`citationSnippets` 与 `mapAnthropicResponse`；`dsh-web-search-perplexity`：`mapPerplexityResponse` 与 `mapPerplexityResult`。
+- `dsh-tool-fs`：`READ_LIMIT`、`STREAM_MIN_SIZE`、`READ_MAX_BYTES`、`READ_MAX_LINE_LENGTH`、`DIFF_CONTEXT`、`applyReadTool`、`parseReadArgs`、`applyWriteTool`、`formatWriteOutput`、`parseWriteArgs`、`applyEditTool`、`formatEditOutput`、`parseEditArgs`、`buildWindow`、`formatReadOutput`、`computeHunkDiffs` 与 `diffsFromMeta`。
+- `dsh-tool-web`：`WEB_SEARCH_MAX_RESULTS`、`applyWebSearchTool`、`formatSearchOutput`、`parseSearchArgs`、`presentSearchCall`、`applyWebFetchTool`、`formatFetchOutput`、`parseFetchArgs`、`presentFetchCall`、`renderBody` 与 `htmlToMarkdown`；`dsh-tool-call-timeout-policy`：`toolTimeoutResult`；`dsh-compaction-basic`：`resolveConfig`；`dsh-tool-bash`：`renderResult`。
 
-把每个表项作为一次公共面清理进行删除或降级，并按 owning package 拆成可审阅 commit。同步更新包 README、JSDoc、子系统页面、生成的 Cordis reflection、类型等价记录与测试。测试直接导入私有源码模块或验证公共行为，不再为了 helper 而保留导出。
+## 提案
 
-改动每个表项前，在实施分支上重复精确生产搜索；若某成员已获得真实调用方则予以保留。不得折叠 capability seam、删除 dialect／provider twin、削弱发布 rollback 或完全停稳的关闭行为，也不得删除 `CompactionResult.summarySeq`。
+以一次有界的、协调的公开接口清理，移除或降级上述每一行。同步更新包 README、JSDoc、生成的 API/事件 catalog、type-equiv 记录、必要的 exports map 以及测试，使测试通过所属的公开约定验证行为，而非保留仅为测试而存在的入口。不折叠任何能力 seam、LLM（大语言模型）适配器、持久化 provider 或生命周期完全停稳约定。
 
-## Alternatives considered
+## 曾考虑的替代方案
 
-**把测试便利与自包含结果回显继续设为公共 API。** 不采用。公共 helper 能简化白盒 import，返回每个生命周期事件值看起来也很方便，但测试可以导入源码 owner，持久化事件仍是 compaction 细节的权威来源。真实消费方可以在归属与失败语义明确时添加最小 API。
+**保留测试便利函数和自包含的结果字段为公开。** 公开辅助函数可以让白盒测试更方便，自包含的结果字段看起来更易用，未来的嵌入者可能需要具体循环类或枚举方法。这些好处是假设性的；保留它们会让每处实现和文档都要解释没有已交付调用者能观察到的状态。真正的消费方可以引入它所需的最小约定，其所有权和失败语义明确。
 
-**为未来可变 provisioning 保留 `AgentSetupCommit`。** 不采用。Finalizer 是合理的提交点设计，但当前没有生产方使用。异步 setup 完成前，Agent 仍保持未发布且可 rollback。未来若 provisioning source 可能在准备与发布之间变化，可根据确切需求引入带重校验的 transaction，无需让每个 setup 永久携带无用联合分支。
+**保留所有 catalog 成员以供模型编写的 mount 使用。** 自引用工具集是一条真实的通用消费路径，而非生成文档的噪音。然而，它的价值来自准确、可组合的服务接口，而非无限期保留重复字段或不一致的参数对；上述每一项 catalog 收缩都移除了在同一次执行、同一个 agent（智能体）或同一结果中其他位置已可获得的事实，并在同一变更中更新 API 参考。
 
-**为动态 Cordis mount 保留 `PlanModeController.set()`。** 不采用。模型编写的 mount 与仓库外 Host 插件现在确实可调用它，但受支持的产品控制是 `/plan` 与 `exit_plan_mode`，它们拥有用户输入、narration、review 与持久化时序。通用 setter 绕过这些产品交互，却没有当前 owner。
+## 验收标准
 
-**把每个包根 helper 保留为非正式库。** 不采用。Function plugin 根是 Loader 约定，不是便利 barrel。发布实现函数会在没有独立受支持库用途的情况下制造兼容面。
+- 精确符号搜索显示：在本 Agent Note 及任何对已实现 Agent Note 的修正之外，没有被移除的接口。
+- 本 Agent Note 列出的每个接口均按指定方式移除或降级；清单之外有意保留的扩展/测试约定不变。
+- 工具执行、上下文压缩（context compaction）、两个 LLM 适配器、持久化 provider、工作流隔离以及 agent 创建/恢复保持其已交付行为。
+- 类型检查、覆盖率、快照、doc-sync（文档同步门禁）、module-graph 校验、构建和 hygiene 通过。
 
-## Acceptance criteria
+## 风险
 
-- 每个表项按规定消失或降级，且新的精确符号搜索确认没有新增生产消费方。
-- Agent create／resume 在移除无用 finalizer 后仍保留未发布 setup、取消、rollback、scoped contribution 顺序、persistence suffix 处理、发布与 dispose 行为。
-- Plan mode 保留 command／tool UX、持久化状态、projection、prompt guidance、pending selection、narration 与 review settlement。
-- Compaction 保留 `summarySeq`、生命周期事件、自动／手工操作、取消、shadow 统计与 transcript 行为。
-- 文件搜索与 Web 工具保留相同 schema、配置、模型可见输出、展示、超时、spill 与 provider 行为，同时包根只暴露受支持插件 API。
-- 聚焦行为测试、可能影响输出时的 snapshot、typecheck、coverage、生成目录、build、hygiene 与文档检查通过。
-
-## Risks
-
-服务方法与结果字段改动会让动态 mount 和预发布 embedder 发生编译可见的产品收缩。删除 `AgentSetupCommit` 会放弃无人使用的发布时重校验 hook；私有化 plan selection 会放弃受支持交互之外的直接编程开关。包根降级可能破坏仓库没有演练的 import。预发布立场允许这些破坏，但实施每个表项前都必须立即重新取证。
+大多数移除在编译时可见但对运行时无影响。上下文压缩参数清理有意禁止会话/上下文不匹配，同时保留手动 region API。外部预发布嵌入者和现有模型编写的 mount 可能导入更少的辅助函数、传递更少的参数或接收更窄的结果形状；这是有意的产品接口收缩，而非仅仅是生成 catalog 的清理。仓库尚未发布，因此承载不受支持的接口才是更大的基础成本。

@@ -132,11 +132,15 @@ apiKeyEnv: DEEPSEEK_API_KEY
 |---|---|
 | [`src/index.ts`](src/index.ts) | Service Definition：`credentialRef`/`credentialKey` 品牌、`ResolvedCredential`/`CredentialRecordInfo`、覆盖两个键空间的抽象提供方、包含式扇出 |
 | [`src/types.ts`](src/types.ts) | 客户端安全类型面：`CredentialRef` 与 `CredentialKey` 品牌、存储记录联合类型、`CredentialInfo` 引用视图、`credentials/reference-updated` 与 `credentials/record-updated` 事件声明 |
-| — | 不发布运行时不变式伴生入口；提供方生命周期与事件时序归同一个服务拥有，因此第二份运行时观察只会重复检查服务是否存在。提供方测试负责验证 teardown 与提交后通知行为。 |
+| [`src/invariant.ts`](src/invariant.ts) | 不变式伴生插件：`credentials/reference-updated` 只在凭据服务存活时触发 |
 
 ### 客户端安全类型
 
 `./types` 子路径出口把事件声明与其点名的 `CredentialRef`、`CredentialKey` 品牌、存储记录联合类型，以及配置界面读取的 `CredentialInfo` 引用视图放在一起，包根继续 re-export 它们。于是 Host 编译面之外的消费方读到的正是 Host 发射的那一份签名，而不必再写一遍。
+
+### 生命周期
+
+服务是提供方注册的 Cordis `Service`：释放挂载 fiber 会移除 `ctx.credentials`。不变式伴生插件检查 `credentials/reference-updated` 绝不在服务存活之前触发——释放后仍有发射意味着提供方把工作泄漏到了 teardown 完全停稳之后。
 
 </details>
 
