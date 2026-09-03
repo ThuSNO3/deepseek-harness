@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/proposed/simplification/2026-09-03-demote-browser-fixture-to-test-support.md
-2026-09-03-demote-browser-fixture-to-test-support.md: fe1f3c987544cace96336147b8ee14dcbc8d4feb
-2026-09-03-demote-browser-fixture-to-test-support.zh.md: f23c30e7708d341474849316b7379a2d762ff102
